@@ -74,7 +74,6 @@ export function Timeline() {
           className="absolute left-1/2 top-0 h-full w-1 bg-gradient-to-b from-primary/20 via-primary/10 to-primary/20 origin-top -translate-x-1/2"
         />
         
-        {/* Dynamic Scroll-Linked Progress Bar */}
         <motion.div
           className="absolute left-1/2 top-0 w-1 origin-top -translate-x-1/2 transition-all duration-300 ease-out"
           style={{

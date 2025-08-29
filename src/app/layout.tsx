@@ -23,11 +23,9 @@ export default function RootLayout({
   return (
     <html lang="en" className="dark">
       <body className={`min-h-screen bg-noir-900 text-zinc-100 bg-purple-noir ${sora.className}`}>
-        <Navbar />
         <main className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-12">
           {children}
         </main>
-        <Footer />
       </body>
     </html>
   );

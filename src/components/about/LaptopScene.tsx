@@ -6,10 +6,9 @@ import { useRef } from "react";
 import * as THREE from "three";
 
 function MacbookModel() {
-  const { scene } = useGLTF("/home/mac.glb");
+  const { scene } = useGLTF("/models/mac.glb");
   const groupRef = useRef<THREE.Group>(null);
 
-  // Smooth floating animation from reference code
   useFrame((state) => {
     if (groupRef.current) {
       const t = state.clock.getElapsedTime();

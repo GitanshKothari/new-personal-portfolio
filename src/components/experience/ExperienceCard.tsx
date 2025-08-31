@@ -5,10 +5,10 @@ import Image from "next/image";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Calendar, MapPin, Building, ChevronRight } from "lucide-react";
-import { experienceItem } from "./experienceData";
+import { ExperienceItem } from "./experienceData";
 
 interface ExperienceCardProps {
-  item: experienceItem;
+  item: ExperienceItem;
   hovered: boolean;
 }
 

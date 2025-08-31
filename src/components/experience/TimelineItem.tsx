@@ -1,6 +1,6 @@
 "use client";
 
-import { motion } from "framer-motion";
+import { motion, Variants } from "framer-motion";
 import { ExperienceCard } from "./ExperienceCard";
 import { ExperienceItem } from "./experienceData";
 
@@ -19,7 +19,7 @@ export function TimelineItem({
 }: TimelineItemProps) {
   const isLeft = index % 2 === 0;
 
-  const cardVariants = {
+  const cardVariants: Variants = {
     hidden: {
       opacity: 0,
       rotateX: -15,

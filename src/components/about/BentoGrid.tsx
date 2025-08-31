@@ -1,5 +1,6 @@
 import React, { useRef } from "react";
 import { useInView } from "framer-motion";
+import type { Variants } from "framer-motion";
 import {
   MapPin,
   Languages,
@@ -15,7 +16,7 @@ import {
 } from "lucide-react";
 import { motion } from "framer-motion";
 
-const slideInLeft = {
+const slideInLeft: Variants = {
   hidden: { opacity: 0, x: -200 },
   visible: {
     opacity: 1,
@@ -28,7 +29,7 @@ const slideInLeft = {
   },
 };
 
-const slideInTop = {
+const slideInTop: Variants = {
   hidden: { opacity: 0, y: -200 },
   visible: {
     opacity: 1,
@@ -41,7 +42,7 @@ const slideInTop = {
   },
 };
 
-const slideInRight = {
+const slideInRight: Variants = {
   hidden: { opacity: 0, x: 200 },
   visible: {
     opacity: 1,
@@ -54,7 +55,7 @@ const slideInRight = {
   },
 };
 
-const slideInBottom = {
+const slideInBottom: Variants = {
   hidden: { opacity: 0, y: 200 },
   visible: {
     opacity: 1,
@@ -67,7 +68,7 @@ const slideInBottom = {
   },
 };
 
-const profileEffect = {
+const profileEffect: Variants = {
   hidden: { opacity: 0, scale: 0.9 },
   visible: {
     opacity: 1,
@@ -87,7 +88,7 @@ export default function BentoGrid() {
   const profileRef = useRef(null);
   const profileInView = useInView(profileRef, {
     amount: 0.5,
-    triggerOnce: false,
+    once: false,
   });
 
   return (

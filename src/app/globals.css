@@ -73,13 +73,13 @@
 
   /* Inputs/borders/rings */
   --border: oklch(0.92 0.004 286);
-  --input:  oklch(0.92 0.004 286);
-  --ring:   oklch(0.67 0.24 295);
+  --input: oklch(0.92 0.004 286);
+  --ring: oklch(0.67 0.24 295);
 
   /* Charts (unchanged, safe defaults) */
   --chart-1: oklch(0.646 0.222 41.116);
-  --chart-2: oklch(0.6   0.118 184.704);
-  --chart-3: oklch(0.398 0.07  227.392);
+  --chart-2: oklch(0.6 0.118 184.704);
+  --chart-3: oklch(0.398 0.07 227.392);
   --chart-4: oklch(0.828 0.189 84.429);
   --chart-5: oklch(0.769 0.188 70.08);
 
@@ -118,7 +118,7 @@
   --secondary-foreground: oklch(0.985 0 0);
 
   --muted: oklch(0.22 0.01 286);
-  --muted-foreground: oklch(0.70 0.015 286);
+  --muted-foreground: oklch(0.7 0.015 286);
 
   /* Accent (pinker highlight) */
   --accent: oklch(0.62 0.22 310);
@@ -126,12 +126,12 @@
 
   /* Inputs/borders low-contrast lines */
   --border: oklch(0.16 0.01 286 / 0.6);
-  --input:  oklch(0.16 0.01 286 / 0.75);
-  --ring:   oklch(0.60 0.20 295);
+  --input: oklch(0.16 0.01 286 / 0.75);
+  --ring: oklch(0.6 0.2 295);
 
   /* Charts (dark-safe) */
   --chart-1: oklch(0.488 0.243 264.376);
-  --chart-2: oklch(0.696 0.170 162.48);
+  --chart-2: oklch(0.696 0.17 162.48);
   --chart-3: oklch(0.769 0.188 70.08);
   --chart-4: oklch(0.627 0.265 303.9);
   --chart-5: oklch(0.645 0.246 16.439);
@@ -144,15 +144,15 @@
   --sidebar-accent: oklch(0.22 0.01 286);
   --sidebar-accent-foreground: oklch(0.985 0 0);
   --sidebar-border: oklch(0.16 0.01 286 / 0.6);
-  --sidebar-ring: oklch(0.60 0.20 295);
+  --sidebar-ring: oklch(0.6 0.2 295);
 
   --font-sans: var(--font-sora);
-
 }
 
 /* Start the app in dark by default (until we add theme switching) */
-html { color-scheme: dark; }
-
+html {
+  color-scheme: dark;
+}
 
 @layer base {
   * {
@@ -165,12 +165,50 @@ html { color-scheme: dark; }
 
 .bg-purple-noir {
   background-color: oklch(0.14 0.01 285);
-  background-image:
-    radial-gradient(1200px 600px at 80% -100px, color-mix(in oklch, oklch(0.67 0.24 295) 30%, transparent), transparent 60%),
-    radial-gradient(1000px 500px at -20% 0%, color-mix(in oklch, oklch(0.60 0.20 305) 22%, transparent), transparent 60%);
+  background-image: radial-gradient(
+      1200px 600px at 80% -100px,
+      color-mix(in oklch, oklch(0.67 0.24 295) 30%, transparent),
+      transparent 60%
+    ),
+    radial-gradient(
+      1000px 500px at -20% 0%,
+      color-mix(in oklch, oklch(0.6 0.2 305) 22%, transparent),
+      transparent 60%
+    );
   background-attachment: fixed;
 }
 
 body {
   font-family: var(--font-sora), system-ui, sans-serif;
+}
+
+@keyframes wave {
+  0% {
+    transform: rotate(0deg);
+  }
+  10% {
+    transform: rotate(14deg);
+  }
+  20% {
+    transform: rotate(-8deg);
+  }
+  30% {
+    transform: rotate(14deg);
+  }
+  40% {
+    transform: rotate(-4deg);
+  }
+  50% {
+    transform: rotate(10deg);
+  }
+  60%,
+  100% {
+    transform: rotate(0deg);
+  }
+}
+
+.wave {
+  display: inline-block;
+  animation: wave 2.5s infinite;
+  transform-origin: 70% 70%; /* pivot around bottom of hand */
 }

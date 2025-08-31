@@ -29,7 +29,7 @@ export function HeroText() {
         transition={{ duration: 0.6, ease: "easeOut" }}
         className="text-4xl md:text-6xl font-bold"
       >
-        Hi! I&apos;m{" "}
+        Hi<span className="wave">👋</span> I&apos;m{" "}
         <span className="bg-gradient-to-r from-purple-400 via-indigo-400 to-cyan-400 bg-clip-text text-transparent animate-gradient-x">
           Gitansh Kothari
         </span>
@@ -43,7 +43,7 @@ export function HeroText() {
       >
         <Typewriter
           words={["A Software Engineer", "An ML Engineer"]}
-          loop={0} 
+          loop={0}
           cursor
           cursorStyle="|"
           typeSpeed={70}

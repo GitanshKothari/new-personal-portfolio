@@ -1,4 +1,17 @@
 import React from "react";
+import {
+  MapPin,
+  Languages,
+  Briefcase,
+  GraduationCap,
+  Clock,
+  Linkedin,
+  Github,
+  Globe,
+  FolderKanban,
+  Cpu,
+  CalendarClock,
+} from "lucide-react";
 
 const card =
   "rounded-2xl bg-gray-900/40 border border-gray-700/50 backdrop-blur-xl shadow-[0_0_0_1px_rgba(255,255,255,0.02)]";
@@ -18,16 +31,16 @@ export default function BentoGrid() {
 
           <div className="space-y-3 mt-4 text-sm/relaxed text-zinc-300">
             <div className="flex items-center gap-3">
-              <span>🔄</span> Webflow
+              <span>🔄</span> Python
             </div>
             <div className="flex items-center gap-3">
-              <span>🎨</span> Figma
+              <span>🎨</span> Pytorch
             </div>
             <div className="flex items-center gap-3">
-              <span>📱</span> Framer
+              <span>📱</span> OpenCV
             </div>
             <div className="flex items-center gap-3">
-              <span>⚡</span> Adobe XD
+              <span>⚡</span> Numpy
             </div>
           </div>
 
@@ -60,45 +73,72 @@ export default function BentoGrid() {
         {/* TOP ROW — STAT (cols 3–4, rows 1–2) */}
 
         <div className={`col-span-2 row-span-2 ${statBox}`}>
-          <div className="text-4xl font-bold">01+</div>
-          <div className="text-purple-300 text-sm mt-1">📁 Projects</div>
+          <div className="text-4xl font-bold">05+</div>
+          <div className="flex items-center gap-2 text-sm mt-1 text-purple-300">
+            <span className="text-zinc-300">
+              <FolderKanban />
+            </span>
+            Projects
+          </div>
         </div>
         <div className={`col-span-2 row-span-2 ${statBox}`}>
-          <div className="text-4xl font-bold">01+</div>
-          <div className="text-purple-300 text-sm mt-1">😊 Happy Clients</div>
+          <div className="text-4xl font-bold">15+</div>
+          <div className="flex items-center gap-2 text-sm mt-1 text-purple-300">
+            <span className="text-zinc-300">
+              <Cpu />
+            </span>
+            Technologies
+          </div>
         </div>
         <div className={`col-span-2 row-span-2 ${statBox}`}>
-          <div className="text-4xl font-bold">01+</div>
-          <div className="text-purple-300 text-sm mt-1">⭐ Year Expertise</div>
+          <div className="text-4xl font-bold">02+</div>
+          <div className="flex items-center gap-2 text-sm mt-1 text-purple-300">
+            <span className="text-zinc-300">
+              <CalendarClock />
+            </span>
+            Year Expertise
+          </div>
         </div>
 
         {/* TOP ROW — ONLINE PRESENCE (fills to end: cols 5–12, rows 1–2) */}
-        <div className={`col-span-4 row-span-2 ${card} p-4`}>
-          <div className={tileTitle}>👋 Follow Me</div>
-          <div className={tileHeading}>Online Presence</div>
-          <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-3 mt-4">
-            {[
-              { icon: "🐙", label: "github/username" },
-              { icon: "🔗", label: "linkedin/username" },
-              { icon: "💼", label: "portfolio.site" },
-              { icon: "🌐", label: "personal.blog" },
-            ].map((s, i) => (
-              <a
-                key={i}
-                href="#"
-                className="flex items-center gap-2 rounded-lg border border-white/10 bg-zinc-900/40 px-3 py-2 text-sm text-zinc-300 hover:bg-zinc-800/50 hover:text-white transition-colors"
-              >
-                <span>{s.icon}</span>
-                <span className="truncate">{s.label}</span>
-              </a>
-            ))}
+        <div
+          className={`col-span-4 row-span-2 ${card} p-4 flex flex-col justify-center`}
+        >
+          <div className="text-4xl mb-2 text-purple-300 text-center">
+            👋 Follow Me
           </div>
-          <div className="mt-4 flex gap-2">
-            <button className="rounded-lg px-4 py-2 text-sm font-medium bg-purple-600 hover:bg-purple-500 transition-colors">
-              Email Me
+          <div className="flex justify-center gap-3 mb-4 flex-wrap">
+            <a
+              href="#"
+              className="flex items-center justify-center rounded-xl border border-white/10 bg-zinc-900/40 w-12 h-12 text-xl text-zinc-300 hover:bg-zinc-800/50 hover:text-white transition-colors"
+            >
+              <Github />
+            </a>
+            <a
+              href="#"
+              className="flex items-center justify-center rounded-xl border border-white/10 bg-zinc-900/40 w-12 h-12 text-xl text-zinc-300 hover:bg-zinc-800/50 hover:text-white transition-colors"
+            >
+              <Linkedin />
+            </a>
+            <a
+              href="#"
+              className="flex items-center justify-center rounded-xl border border-white/10 bg-zinc-900/40 w-12 h-12 text-xl text-zinc-300 hover:bg-zinc-800/50 hover:text-white transition-colors"
+            >
+              <Briefcase />
+            </a>
+            <a
+              href="#"
+              className="flex items-center justify-center rounded-xl border border-white/10 bg-zinc-900/40 w-12 h-12 text-xl text-zinc-300 hover:bg-zinc-800/50 hover:text-white transition-colors"
+            >
+              <Globe />
+            </a>
+          </div>
+          <div className="flex gap-3">
+            <button className="rounded-xl flex-1 py-3 text-sm font-medium bg-purple-600 hover:bg-purple-500 transition-colors whitespace-nowrap overflow-hidden text-ellipsis">
+              📧 Email Me
             </button>
-            <button className="rounded-lg px-4 py-2 text-sm font-medium bg-zinc-900/60 border border-white/10 hover:bg-zinc-800/60 transition-colors">
-              Copy Address
+            <button className="rounded-xl flex-1 py-3 text-sm font-medium bg-zinc-900/60 border border-white/10 hover:bg-zinc-800/60 transition-colors whitespace-nowrap overflow-hidden text-ellipsis">
+              📋 Copy Address
             </button>
           </div>
         </div>
@@ -109,34 +149,58 @@ export default function BentoGrid() {
             <div className="w-16 h-16 rounded-xl bg-gradient-to-br from-purple-500 to-indigo-500 flex items-center justify-center">
               <span className="text-2xl">👨‍💻</span>
             </div>
-            <div>
-              <div className="flex items-center gap-2 mb-1 text-xs text-zinc-300">
-                <span className="w-2 h-2 bg-emerald-400 rounded-full" />
-                Available To Work
-                <span className="text-[11px] bg-zinc-800/70 border border-white/10 px-2 py-0.5 rounded">
+            <div className="flex-1">
+              <div className="flex items-center justify-between mb-1 text-xs text-zinc-300">
+                <div className="flex items-center gap-2">
+                  <span className="w-2 h-2 bg-emerald-400 rounded-full" />
+                  Available To Work
+                </div>
+                <a
+                  href="/resume"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-sm bg-purple-600 border border-purple-500 px-6 py-2 rounded-lg hover:bg-purple-500 transition-colors font-semibold text-white shadow"
+                >
                   Resume
-                </span>
+                </a>
               </div>
-              <h2 className="text-xl font-bold">Sanjay Billa</h2>
-              <p className="text-zinc-400">I&apos;m a Product Designer</p>
+              <h2 className="text-xl font-bold">Gitansh Kothari</h2>
+              <p className="text-zinc-400">
+                I&apos;m a Machine Learning Engineer
+              </p>
             </div>
           </div>
 
           <div className="grid grid-cols-3 gap-4 text-sm text-zinc-300">
             <div className="flex items-center gap-2">
-              <span>📍</span> India
+              <span>
+                <MapPin />
+              </span>{" "}
+              Toronto, Canada
             </div>
             <div className="flex items-center gap-2">
-              <span>🗣️</span> English &amp; Hindi
+              <span>
+                <Languages />
+              </span>{" "}
+              English &amp; Hindi
             </div>
             <div className="flex items-center gap-2">
-              <span>💼</span> Product Designer
+              <span>
+                <Briefcase />
+              </span>{" "}
+              ML Engineer
             </div>
             <div className="flex items-center gap-2">
-              <span>🎓</span> Mumbai University
+              <span>
+                <GraduationCap />
+              </span>{" "}
+              University of Toronto
             </div>
             <div className="flex items-center gap-2">
-              <span>💡</span> IoT
+              <span>
+                <Clock />
+              </span>{" "}
+              EST
             </div>
           </div>
 
@@ -151,18 +215,23 @@ export default function BentoGrid() {
         </div>
 
         {/* MIDDLE RIGHT — LARGE WORK GALLERY (cols 9–12, rows 3–6) */}
-        <div className={`col-span-4 row-span-4 ${card} p-6`}>
+        <div className={`col-span-4 row-span-4 ${card} p-6 relative`}>
           <div className={tileTitle}>📁 Projects</div>
           <div className={tileHeading}>Works Gallery</div>
-          <div className="mt-4 grid grid-cols-2 gap-3">
-            <div className="aspect-[4/3] rounded-xl bg-gradient-to-br from-indigo-500/60 to-purple-600/60" />
-            <div className="aspect-[4/3] rounded-xl bg-gradient-to-br from-fuchsia-500/60 to-purple-600/60" />
-            <div className="aspect-[4/3] rounded-xl bg-gradient-to-br from-cyan-500/50 to-indigo-600/60" />
-            <div className="aspect-[4/3] rounded-xl bg-gradient-to-br from-violet-500/50 to-fuchsia-600/60" />
+          <div className="mt-4 grid grid-cols-2 gap-3 relative">
+            {/* Example boxes with background blur, shadow, and slight scale for depth */}
+            <div className="aspect-[4/3] rounded-xl bg-gradient-to-br from-indigo-500/60 to-purple-600/60 shadow-xl backdrop-blur-md scale-95 opacity-80" />
+            <div className="aspect-[4/3] rounded-xl bg-gradient-to-br from-fuchsia-500/60 to-purple-600/60 shadow-xl backdrop-blur-md scale-95 opacity-80" />
+            <div className="aspect-[4/3] rounded-xl bg-gradient-to-br from-cyan-500/50 to-indigo-600/60 shadow-xl backdrop-blur-md scale-95 opacity-80" />
+            <div className="aspect-[4/3] rounded-xl bg-gradient-to-br from-violet-500/50 to-fuchsia-600/60 shadow-xl backdrop-blur-md scale-95 opacity-80" />
+            {/* Overlay button */}
+            <button
+              className="absolute left-1/2 -translate-x-1/2 bottom-8 z-10 w-3/4 rounded-lg py-2 text-sm font-medium bg-purple-600 hover:bg-purple-500 transition-colors shadow-2xl"
+              style={{ pointerEvents: "auto" }}
+            >
+              View All Projects
+            </button>
           </div>
-          <button className="mt-4 w-full rounded-lg py-2 text-sm font-medium bg-purple-600 hover:bg-purple-500 transition-colors">
-            View All Projects
-          </button>
         </div>
 
         {/* BOTTOM LEFT — CLIENTS (cols 3–8, rows 7–8) */}
@@ -181,9 +250,8 @@ export default function BentoGrid() {
         </div>
 
         {/* BOTTOM RIGHT — CONTACT / CTA (cols 9–12, rows 7–8) */}
-        <div className="col-span-4 row-span-2 rounded-2xl p-6 border border-purple-500/40 bg-gradient-to-br from-purple-600/30 to-indigo-600/30">
+        <div className="col-span-4 row-span-2 rounded-2xl p-4 border border-purple-500/40 bg-gradient-to-br from-purple-600/30 to-indigo-600/30">
           <div className="text-center">
-            <div className="text-2xl mb-2">👑</div>
             <h3 className="font-bold text-lg mb-1">Let&apos;s Work Together</h3>
             <p className="text-sm mb-4 text-zinc-200/80">
               Let&apos;s make something great.

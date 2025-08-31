@@ -1,4 +1,5 @@
-import React from "react";
+import React, { useRef } from "react";
+import { useInView } from "framer-motion";
 import {
   MapPin,
   Languages,
@@ -12,6 +13,69 @@ import {
   Cpu,
   CalendarClock,
 } from "lucide-react";
+import { motion } from "framer-motion";
+
+const slideInLeft = {
+  hidden: { opacity: 0, x: -200 },
+  visible: {
+    opacity: 1,
+    x: 0,
+    transition: {
+      type: "spring",
+      stiffness: 100,
+      damping: 10,
+    },
+  },
+};
+
+const slideInTop = {
+  hidden: { opacity: 0, y: -200 },
+  visible: {
+    opacity: 1,
+    y: 0,
+    transition: {
+      type: "spring",
+      stiffness: 100,
+      damping: 10,
+    },
+  },
+};
+
+const slideInRight = {
+  hidden: { opacity: 0, x: 200 },
+  visible: {
+    opacity: 1,
+    x: 0,
+    transition: {
+      type: "spring",
+      stiffness: 100,
+      damping: 10,
+    },
+  },
+};
+
+const slideInBottom = {
+  hidden: { opacity: 0, y: 200 },
+  visible: {
+    opacity: 1,
+    y: 0,
+    transition: {
+      type: "spring",
+      stiffness: 100,
+      damping: 10,
+    },
+  },
+};
+
+const profileEffect = {
+  hidden: { opacity: 0, scale: 0.9 },
+  visible: {
+    opacity: 1,
+    scale: 1,
+    boxShadow: "0 0 20px rgba(168, 85, 247, 0.3)", // purple glow
+    transition: { duration: 0.8, ease: "easeOut" },
+  },
+};
 
 const card =
   "rounded-2xl bg-gray-900/40 border border-gray-700/50 backdrop-blur-xl shadow-[0_0_0_1px_rgba(255,255,255,0.02)]";
@@ -20,12 +84,21 @@ const tileHeading = "font-semibold text-[15px] md:text-base";
 const statBox = `flex flex-col items-center justify-center ${card} p-4`;
 
 export default function BentoGrid() {
+  const profileRef = useRef(null);
+  const profileInView = useInView(profileRef, {
+    amount: 0.5,
+    triggerOnce: false,
+  });
+
   return (
     <div className="min-h-screen bg-[#0b0b12] text-white p-4">
-      {/* 12 × 8 grid (same unit system) */}
       <div className="max-w-7xl mx-auto h-screen grid grid-cols-12 grid-rows-8 gap-4">
         {/* LEFT SIDEBAR (cols 1–2, rows 1–8) */}
-        <div className={`col-span-2 row-span-8 ${card} p-4`}>
+        <motion.div
+          variants={slideInLeft}
+          animate={profileInView ? "visible" : "hidden"}
+          className={`col-span-2 row-span-8 ${card} p-4`}
+        >
           <div className={tileTitle}>📚 My Stacks</div>
           <div className={tileHeading}>Tech Arsenal</div>
 
@@ -68,11 +141,15 @@ export default function BentoGrid() {
               View All Services
             </button>
           </div>
-        </div>
+        </motion.div>
 
         {/* TOP ROW — STAT (cols 3–4, rows 1–2) */}
 
-        <div className={`col-span-2 row-span-2 ${statBox}`}>
+        <motion.div
+          variants={slideInTop}
+          animate={profileInView ? "visible" : "hidden"}
+          className={`col-span-2 row-span-2 ${statBox}`}
+        >
           <div className="text-4xl font-bold">05+</div>
           <div className="flex items-center gap-2 text-sm mt-1 text-purple-300">
             <span className="text-zinc-300">
@@ -80,8 +157,12 @@ export default function BentoGrid() {
             </span>
             Projects
           </div>
-        </div>
-        <div className={`col-span-2 row-span-2 ${statBox}`}>
+        </motion.div>
+        <motion.div
+          variants={slideInTop}
+          animate={profileInView ? "visible" : "hidden"}
+          className={`col-span-2 row-span-2 ${statBox}`}
+        >
           <div className="text-4xl font-bold">15+</div>
           <div className="flex items-center gap-2 text-sm mt-1 text-purple-300">
             <span className="text-zinc-300">
@@ -89,8 +170,12 @@ export default function BentoGrid() {
             </span>
             Technologies
           </div>
-        </div>
-        <div className={`col-span-2 row-span-2 ${statBox}`}>
+        </motion.div>
+        <motion.div
+          variants={slideInTop}
+          animate={profileInView ? "visible" : "hidden"}
+          className={`col-span-2 row-span-2 ${statBox}`}
+        >
           <div className="text-4xl font-bold">02+</div>
           <div className="flex items-center gap-2 text-sm mt-1 text-purple-300">
             <span className="text-zinc-300">
@@ -98,10 +183,12 @@ export default function BentoGrid() {
             </span>
             Year Expertise
           </div>
-        </div>
+        </motion.div>
 
         {/* TOP ROW — ONLINE PRESENCE (fills to end: cols 5–12, rows 1–2) */}
-        <div
+        <motion.div
+          variants={slideInTop}
+          animate={profileInView ? "visible" : "hidden"}
           className={`col-span-4 row-span-2 ${card} p-4 flex flex-col justify-center`}
         >
           <div className="text-4xl mb-2 text-purple-300 text-center">
@@ -141,10 +228,17 @@ export default function BentoGrid() {
               📋 Copy Address
             </button>
           </div>
-        </div>
+        </motion.div>
 
         {/* MIDDLE — MAIN PROFILE (cols 3–8, rows 3–6) */}
-        <div className={`col-span-6 row-span-4 ${card} p-6`}>
+        <motion.div
+          ref={profileRef}
+          variants={profileEffect}
+          initial="hidden"
+          whileInView="visible"
+          viewport={{ once: false, amount: 0.5 }}
+          className={`col-span-6 row-span-4 ${card} p-6`}
+        >
           <div className="flex items-center gap-4 mb-4">
             <div className="w-16 h-16 rounded-xl bg-gradient-to-br from-purple-500 to-indigo-500 flex items-center justify-center">
               <span className="text-2xl">👨‍💻</span>
@@ -212,10 +306,14 @@ export default function BentoGrid() {
               <span>💬</span> WhatsApp Me
             </div>
           </div>
-        </div>
+        </motion.div>
 
         {/* MIDDLE RIGHT — LARGE WORK GALLERY (cols 9–12, rows 3–6) */}
-        <div className={`col-span-4 row-span-4 ${card} p-6 relative`}>
+        <motion.div
+          variants={slideInRight}
+          animate={profileInView ? "visible" : "hidden"}
+          className={`col-span-4 row-span-4 ${card} p-6 relative`}
+        >
           <div className={tileTitle}>📁 Projects</div>
           <div className={tileHeading}>Works Gallery</div>
           <div className="mt-4 grid grid-cols-2 gap-3 relative">
@@ -232,10 +330,14 @@ export default function BentoGrid() {
               View All Projects
             </button>
           </div>
-        </div>
+        </motion.div>
 
         {/* BOTTOM LEFT — CLIENTS (cols 3–8, rows 7–8) */}
-        <div className={`col-span-6 row-span-2 ${card} p-4`}>
+        <motion.div
+          variants={slideInBottom}
+          animate={profileInView ? "visible" : "hidden"}
+          className={`col-span-6 row-span-2 ${card} p-4`}
+        >
           <div className={tileTitle}>👥 My Clients</div>
           <div className={tileHeading}>Satisfied Partners</div>
           <div className="flex items-center justify-between mt-4 text-zinc-400 text-sm">
@@ -247,10 +349,14 @@ export default function BentoGrid() {
             <div>Snapchat</div>
             <div>Dribbble</div>
           </div>
-        </div>
+        </motion.div>
 
         {/* BOTTOM RIGHT — CONTACT / CTA (cols 9–12, rows 7–8) */}
-        <div className="col-span-4 row-span-2 rounded-2xl p-4 border border-purple-500/40 bg-gradient-to-br from-purple-600/30 to-indigo-600/30">
+        <motion.div
+          variants={slideInBottom}
+          animate={profileInView ? "visible" : "hidden"}
+          className="col-span-4 row-span-2 rounded-2xl p-4 border border-purple-500/40 bg-gradient-to-br from-purple-600/30 to-indigo-600/30"
+        >
           <div className="text-center">
             <h3 className="font-bold text-lg mb-1">Let&apos;s Work Together</h3>
             <p className="text-sm mb-4 text-zinc-200/80">
@@ -265,7 +371,7 @@ export default function BentoGrid() {
               </button>
             </div>
           </div>
-        </div>
+        </motion.div>
       </div>
     </div>
   );

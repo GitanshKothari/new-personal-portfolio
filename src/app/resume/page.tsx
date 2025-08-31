@@ -1,16 +1,15 @@
-import Link from 'next/link';
-import type { Metadata } from 'next';
-import { Button } from '@/components/ui/button';
-import { Download, ExternalLink } from 'lucide-react';
-import { ResumeViewer } from '@/components/resume/ResumeViewer';
+import type { Metadata } from "next";
+import { Button } from "@/components/ui/button";
+import { Download, ExternalLink } from "lucide-react";
+import { ResumeViewer } from "@/components/resume/ResumeViewer";
 
 export const metadata: Metadata = {
-  title: 'Resume — Gitansh Kothari',
+  title: "Resume — Gitansh Kothari",
   description:
-    'View or download the resume of Gitansh Kothari — Machine Learning & Full-Stack Engineer.',
+    "View or download the resume of Gitansh Kothari — Machine Learning & Full-Stack Engineer.",
 };
 
-const RESUME_PATH = '/resume/Gitansh_Kothari_Resume.pdf';
+const RESUME_PATH = "/resume/Gitansh_Kothari_Resume.pdf";
 
 export default function ResumePage() {
   return (

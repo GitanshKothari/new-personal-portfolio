@@ -2,16 +2,21 @@
 
 import { motion } from "framer-motion";
 import { ExperienceCard } from "./ExperienceCard";
-import { experienceData } from "./experienceData";
+import { ExperienceItem } from "./experienceData";
 
 interface TimelineItemProps {
-  item: any;
+  item: ExperienceItem;
   index: number;
   hoveredCard: number | null;
   setHoveredCard: (index: number | null) => void;
 }
 
-export function TimelineItem({ item, index, hoveredCard, setHoveredCard }: TimelineItemProps) {
+export function TimelineItem({
+  item,
+  index,
+  hoveredCard,
+  setHoveredCard,
+}: TimelineItemProps) {
   const isLeft = index % 2 === 0;
 
   const cardVariants = {

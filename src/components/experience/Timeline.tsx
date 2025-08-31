@@ -12,17 +12,26 @@ export function Timeline() {
   const containerRef = useRef<HTMLElement>(null);
 
   return (
-    <section ref={containerRef} id="experience" className="py-20 relative overflow-hidden">
+    <section
+      ref={containerRef}
+      id="experience"
+      className="py-20 relative overflow-hidden"
+    >
       <div className="max-w-6xl mx-auto px-4">
         <motion.div
           initial="hidden"
           whileInView="visible"
           viewport={{ once: true }}
           transition={{ duration: 0.6 }}
-          variants={{ hidden: { opacity: 0, y: 20 }, visible: { opacity: 1, y: 0 } }}
+          variants={{
+            hidden: { opacity: 0, y: 20 },
+            visible: { opacity: 1, y: 0 },
+          }}
           className="text-center mb-16"
         >
-          <Badge variant="outline" className="mb-4">Experience</Badge>
+          <Badge variant="outline" className="mb-4">
+            Experience
+          </Badge>
           <div className="w-20 h-1 bg-primary mx-auto"></div>
         </motion.div>
 
@@ -50,7 +59,12 @@ export function Timeline() {
       />
       <motion.div
         animate={{ y: [0, 20, 0], scale: [1, 1.2, 1] }}
-        transition={{ duration: 10, repeat: Infinity, ease: "easeInOut", delay: 3 }}
+        transition={{
+          duration: 10,
+          repeat: Infinity,
+          ease: "easeInOut",
+          delay: 3,
+        }}
         className="absolute bottom-20 right-10 w-40 h-40 bg-primary/5 rounded-full blur-3xl"
       />
     </section>

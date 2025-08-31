@@ -5,9 +5,10 @@ import Image from "next/image";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Calendar, MapPin, Building, ChevronRight } from "lucide-react";
+import { experienceItem } from "./experienceData";
 
 interface ExperienceCardProps {
-  item: any;
+  item: experienceItem;
   hovered: boolean;
 }
 
@@ -16,13 +17,13 @@ export function ExperienceCard({ item, hovered }: ExperienceCardProps) {
     <Card className="relative overflow-hidden group shadow-2xl hover:shadow-3xl transition-all duration-500 backdrop-blur-xl bg-black/20 border border-white/5 rounded-2xl">
       {/* Glassmorphism Background */}
       <div className="absolute inset-0 bg-gradient-to-br from-white/5 via-white/2 to-transparent rounded-2xl" />
-      
+
       {/* Diagonal Shine Lines */}
       <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-700">
         <div className="absolute top-0 left-0 w-full h-full bg-gradient-to-br from-transparent via-white/10 to-transparent transform -skew-x-12 translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-1000 ease-out" />
         <div className="absolute top-0 left-0 w-full h-full bg-gradient-to-br from-transparent via-white/5 to-transparent transform skew-x-12 translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-1000 ease-out delay-200" />
       </div>
-      
+
       {/* Animated Gradient Overlay */}
       <motion.div
         className="absolute inset-0 opacity-0 group-hover:opacity-100"
@@ -40,15 +41,15 @@ export function ExperienceCard({ item, hovered }: ExperienceCardProps) {
         }
         transition={{ duration: 2, repeat: Infinity }}
       />
-      
+
       {/* Inner Glow */}
       <div className="absolute inset-0 bg-gradient-to-br from-primary/3 via-transparent to-primary/3 rounded-2xl" />
-      
+
       {/* Subtle Border Glow */}
       <div className="absolute inset-0 rounded-2xl bg-gradient-to-r from-primary/10 via-transparent to-primary/10 opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
 
       <CardContent className="p-6 relative z-10">
-        <motion.div 
+        <motion.div
           className="flex items-start gap-4 mb-4"
           initial={{ opacity: 0, y: 20 }}
           whileInView={{ opacity: 1, y: 0 }}
@@ -56,7 +57,7 @@ export function ExperienceCard({ item, hovered }: ExperienceCardProps) {
           transition={{ duration: 0.6, delay: 0.1 }}
         >
           {item.logo && (
-            <motion.div 
+            <motion.div
               className="flex-shrink-0"
               initial={{ opacity: 0, scale: 0.8, rotate: -10 }}
               whileInView={{ opacity: 1, scale: 1, rotate: 0 }}
@@ -77,7 +78,7 @@ export function ExperienceCard({ item, hovered }: ExperienceCardProps) {
               </motion.div>
             </motion.div>
           )}
-          <motion.div 
+          <motion.div
             className="flex-1"
             initial={{ opacity: 0, x: 20 }}
             whileInView={{ opacity: 1, x: 0 }}
@@ -101,7 +102,10 @@ export function ExperienceCard({ item, hovered }: ExperienceCardProps) {
                 {item.location}
               </div>
               {item.type && (
-                <Badge variant="outline" className="text-xs bg-white/10 border-white/20">
+                <Badge
+                  variant="outline"
+                  className="text-xs bg-white/10 border-white/20"
+                >
                   {item.type}
                 </Badge>
               )}
@@ -110,7 +114,7 @@ export function ExperienceCard({ item, hovered }: ExperienceCardProps) {
         </motion.div>
 
         {item.description && (
-          <motion.p 
+          <motion.p
             className="text-muted-foreground mb-4 leading-relaxed"
             initial={{ opacity: 0, y: 20 }}
             whileInView={{ opacity: 1, y: 0 }}
@@ -122,20 +126,18 @@ export function ExperienceCard({ item, hovered }: ExperienceCardProps) {
         )}
 
         {item.keyTakeaways && (
-          <motion.div 
+          <motion.div
             className="mb-4"
             initial={{ opacity: 0, y: 20 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ margin: "-50px" }}
             transition={{ duration: 0.6, delay: 0.5 }}
           >
-            <h4 className="font-semibold mb-2">
-              Key Takeaways
-            </h4>
+            <h4 className="font-semibold mb-2">Key Takeaways</h4>
             <ul className="space-y-1">
               {item.keyTakeaways.map((takeaway: string, i: number) => (
-                <motion.li 
-                  key={i} 
+                <motion.li
+                  key={i}
                   className="text-sm text-muted-foreground flex items-start gap-2"
                   initial={{ opacity: 0, x: -20 }}
                   whileInView={{ opacity: 1, x: 0 }}
@@ -167,7 +169,10 @@ export function ExperienceCard({ item, hovered }: ExperienceCardProps) {
                   viewport={{ margin: "-50px" }}
                   transition={{ duration: 0.4, delay: 0.8 + i * 0.05 }}
                 >
-                  <Badge variant="secondary" className="text-xs bg-white/10 border-white/20">
+                  <Badge
+                    variant="secondary"
+                    className="text-xs bg-white/10 border-white/20"
+                  >
                     {t}
                   </Badge>
                 </motion.div>

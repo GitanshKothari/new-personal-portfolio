@@ -3,6 +3,7 @@ import { Footer } from "@/components/layout/Footer";
 import { Timeline } from "@/components/experience/Timeline";
 import { Hero } from "@/components/about/Hero";
 import Education from "@/components/education/Education";
+import ProjectsCarousel from "@/components/projects/ProjectCarousel";
 
 export default function Home() {
   return (
@@ -12,6 +13,7 @@ export default function Home() {
       <Hero />
       <Education />
       <Timeline />
+      <ProjectsCarousel />
 
       <Footer />
     </main>

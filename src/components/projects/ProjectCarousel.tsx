@@ -1,10 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import { Card, CardContent } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { ExternalLink, Github, ChevronLeft, ChevronRight } from "lucide-react";
+import { ChevronLeft, ChevronRight } from "lucide-react";
 import { motion, useMotionValue, useSpring } from "framer-motion";
 
 interface Project {
@@ -60,7 +58,7 @@ export default function ProjectsDisplay() {
     const springX = useSpring(rotateX, { stiffness: 150, damping: 20 });
     const springY = useSpring(rotateY, { stiffness: 150, damping: 20 });
 
-    const handleMouseMove = (e: MouseEvent<HTMLDivElement>) => {
+    const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
       const rect = e.currentTarget.getBoundingClientRect();
       const x = e.clientX - rect.left;
       const y = e.clientY - rect.top;
@@ -214,82 +212,3 @@ export default function ProjectsDisplay() {
     </section>
   );
 }
-
-// function ThreeDCard({ project }: { project: Project }) {
-//   const x = useMotionValue(0);
-//   const y = useMotionValue(0);
-
-//   // Rotate the card based on mouse position
-//   const rotateX = useTransform(y, [-100, 100], [15, -15]);
-//   const rotateY = useTransform(x, [-100, 100], [-15, 15]);
-
-//   function handleMouseMove(e: React.MouseEvent<HTMLDivElement, MouseEvent>) {
-//     const rect = e.currentTarget.getBoundingClientRect();
-//     const offsetX = e.clientX - rect.left - rect.width / 2;
-//     const offsetY = e.clientY - rect.top - rect.height / 2;
-//     x.set(offsetX);
-//     y.set(offsetY);
-//   }
-
-//   function handleMouseLeave() {
-//     x.set(0);
-//     y.set(0);
-//   }
-
-//   return (
-//     <motion.div
-//       className="w-[22rem] h-[28rem] bg-gray-900/40 border border-gray-700/50 rounded-xl p-6 flex flex-col justify-between shadow-lg cursor-pointer"
-//       style={{
-//         rotateX,
-//         rotateY,
-//         transformStyle: "preserve-3d",
-//       }}
-//       onMouseMove={handleMouseMove}
-//       onMouseLeave={handleMouseLeave}
-//       transition={{ type: "spring", stiffness: 200, damping: 20 }}
-//     >
-//       <motion.h3
-//         className="text-xl font-bold text-purple-300"
-//         style={{ transform: "translateZ(50px)" }}
-//       >
-//         {project.title}
-//       </motion.h3>
-//       <motion.p
-//         className="text-sm text-gray-300 mt-2"
-//         style={{ transform: "translateZ(60px)" }}
-//       >
-//         {project.description}
-//       </motion.p>
-//       <motion.img
-//         src={project.image}
-//         alt={project.title}
-//         className="h-40 w-full object-cover rounded-lg mt-4"
-//         style={{ transform: "translateZ(80px)" }}
-//       />
-//       <motion.a
-//         href={project.link}
-//         target="_blank"
-//         rel="noopener noreferrer"
-//         className="mt-6 inline-block px-4 py-2 rounded-lg text-sm font-medium bg-purple-600 text-white hover:bg-purple-500 transition-colors"
-//         style={{ transform: "translateZ(40px)" }}
-//       >
-//         View Project →
-//       </motion.a>
-//     </motion.div>
-//   );
-// }
-
-// export default function ProjectsCarousel() {
-//   return (
-//     <section id="projects" className="py-20 bg-[#0b0b12] text-white">
-//       <h2 className="text-4xl font-bold text-center mb-12">Projects</h2>
-//       <div className="flex gap-8 overflow-x-auto px-6 snap-x snap-mandatory scrollbar-hide">
-//         {projects.map((project, idx) => (
-//           <div key={idx} className="snap-center">
-//             <ThreeDCard project={project} />
-//           </div>
-//         ))}
-//       </div>
-//     </section>
-//   );
-// }

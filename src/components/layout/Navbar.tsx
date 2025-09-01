@@ -1,6 +1,6 @@
 "use client";
 
-import { motion } from "framer-motion";
+import { motion, Variants, Transition } from "framer-motion";
 import Link from "next/link";
 import {
   Home,
@@ -62,17 +62,17 @@ const menuItems = [
   },
 ];
 
-const itemVariants = {
+const itemVariants: Variants = {
   initial: { rotateX: 0, opacity: 1 },
   hover: { rotateX: -90, opacity: 0 },
 };
 
-const backVariants = {
+const backVariants: Variants = {
   initial: { rotateX: 90, opacity: 0 },
   hover: { rotateX: 0, opacity: 1 },
 };
 
-const glowVariants = {
+const glowVariants: Variants = {
   initial: { opacity: 0, scale: 0.8 },
   hover: {
     opacity: 1,
@@ -84,7 +84,7 @@ const glowVariants = {
   },
 };
 
-const navGlowVariants = {
+const navGlowVariants: Variants = {
   initial: { opacity: 0 },
   hover: {
     opacity: 1,
@@ -92,7 +92,7 @@ const navGlowVariants = {
   },
 };
 
-const sharedTransition = {
+const sharedTransition: Transition = {
   type: "spring",
   stiffness: 100,
   damping: 20,
@@ -106,7 +106,6 @@ export function Navbar() {
       initial="initial"
       whileHover="hover"
     >
-      {/* subtle animated glow behind navbar */}
       <motion.div
         className="absolute -inset-2 bg-gradient-radial from-purple-400/10 via-indigo-400/10 to-transparent rounded-3xl z-0 pointer-events-none"
         variants={navGlowVariants}
@@ -121,7 +120,6 @@ export function Navbar() {
               whileHover="hover"
               initial="initial"
             >
-              {/* Glow background */}
               <motion.div
                 className="absolute inset-0 z-0 pointer-events-none"
                 variants={glowVariants}
@@ -132,7 +130,6 @@ export function Navbar() {
                 }}
               />
 
-              {/* Front face */}
               <motion.div
                 className="flex items-center gap-2 px-4 py-2 relative z-10 text-zinc-400 group-hover:text-white transition-colors rounded-xl cursor-pointer"
                 variants={itemVariants}
@@ -150,7 +147,6 @@ export function Navbar() {
                 <Link href={item.href}>{item.label}</Link>
               </motion.div>
 
-              {/* Back face */}
               <motion.div
                 className="flex items-center gap-2 px-4 py-2 absolute inset-0 z-10 text-zinc-400 group-hover:text-white transition-colors rounded-xl cursor-pointer"
                 variants={backVariants}

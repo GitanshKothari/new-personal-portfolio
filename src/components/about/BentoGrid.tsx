@@ -92,7 +92,7 @@ export default function BentoGrid() {
   });
 
   return (
-    <div className="min-h-screen bg-[#0b0b12] text-white p-4">
+    <div className="min-h-screen  text-white p-4">
       <div className="max-w-7xl mx-auto h-screen grid grid-cols-12 grid-rows-8 gap-4">
         {/* LEFT SIDEBAR (cols 1–2, rows 1–8) */}
         <motion.div

@@ -4,6 +4,7 @@ import { Timeline } from "@/components/experience/Timeline";
 import { Hero } from "@/components/about/Hero";
 import Education from "@/components/education/Education";
 import ProjectsCarousel from "@/components/projects/ProjectCarousel";
+import SkillsSection3D from "@/components/skills/Skills";
 
 export default function Home() {
   return (
@@ -14,7 +15,7 @@ export default function Home() {
       <Education />
       <Timeline />
       <ProjectsCarousel />
-
+      <SkillsSection3D />
       <Footer />
     </main>
   );

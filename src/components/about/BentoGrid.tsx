@@ -15,9 +15,18 @@ import {
   CalendarClock,
   Clipboard,
   ClipboardCheck,
+  ArrowRight,
+  ArrowDownRight,
+  ArrowUpRight
 } from "lucide-react";
 import { motion } from "framer-motion";
 
+const steps = [
+  "Research",
+  "Build",
+  "Test",
+  "Deploy",
+];
 const slideInLeft: Variants = {
   hidden: { opacity: 0, x: -200 },
   visible: {
@@ -95,8 +104,7 @@ export default function BentoGrid() {
 
   return (
     <div className="min-h-screen  text-white p-4">
-      <div className="max-w-7xl mx-auto min-h-screen grid grid-cols-1 md:grid-cols-12 md:grid-rows-8 gap-4">
-        {/* LEFT SIDEBAR (cols 1–2, rows 1–8) */}
+      <div className="max-w-7xl mx-auto min-h-screen grid grid-cols-1 md:grid-cols-12 md:grid-rows-8 gap-4">    
         <motion.div
           variants={slideInLeft}
           animate={profileInView ? "visible" : "hidden"}
@@ -131,8 +139,8 @@ export default function BentoGrid() {
             <div className={tileTitle}>⚙️ Services</div>
             <div className={tileHeading}>Solutions Suite</div>
             <div className="text-xs space-y-2 mt-3 text-zinc-300">
-              <div>🤖 ML Model Development</div>
-              <div>💻 Full-Stack Development</div>
+              <div>🧠 ML Model Development</div>
+              <div>⚛️ Full-Stack Development</div>
               <div>☁️ Cloud Solutions</div>
               <div>🔧 Software Engineering</div>
             </div>
@@ -142,7 +150,6 @@ export default function BentoGrid() {
           </div>
         </motion.div>
 
-        {/* TOP ROW — STAT (cols 3–4, rows 1–2) */}
 
         <motion.div
           variants={slideInTop}
@@ -184,7 +191,6 @@ export default function BentoGrid() {
           </div>
         </motion.div>
 
-        {/* TOP ROW — ONLINE PRESENCE (fills to end: cols 5–12, rows 1–2) */}
         <motion.div
           variants={slideInTop}
           animate={profileInView ? "visible" : "hidden"}
@@ -194,7 +200,6 @@ export default function BentoGrid() {
             👋 Follow Me
           </div>
 
-          {/* Social buttons with labels */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-4 w-full">
             <a
               href="https://github.com/GitanshKothari"
@@ -216,11 +221,9 @@ export default function BentoGrid() {
             </a>
           </div>
 
-          {/* Email CTAs */}
           <MarkdownCopyEmail />
         </motion.div>
 
-        {/* MIDDLE — MAIN PROFILE (cols 3–8, rows 3–6) */}
         <motion.div
           ref={profileRef}
           variants={profileEffect}
@@ -229,76 +232,87 @@ export default function BentoGrid() {
           viewport={{ once: false, amount: 0.5 }}
           className={`col-span-12 md:col-span-6 md:row-span-4 ${card} p-6`}
         >
-          <div className="flex items-center gap-4 mb-4">
+          <div className="flex items-center gap-4 mb-6">
             <div className="w-16 h-16 rounded-xl bg-gradient-to-br from-purple-500 to-indigo-500 flex items-center justify-center">
               <span className="text-2xl">👨‍💻</span>
             </div>
             <div className="flex-1">
-              <div className="flex items-center justify-between mb-1 text-xs text-zinc-300">
+              <div className="flex items-center justify-between mb-1">
                 <div className="flex items-center gap-2">
                   <span className="w-2 h-2 bg-emerald-400 rounded-full" />
-                  Available To Work
+                  <span className="text-xs text-zinc-300">Available To Work</span>
                 </div>
                 <a
                   href="/resume"
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="text-sm bg-purple-600 border border-purple-500 px-6 py-2 rounded-lg hover:bg-purple-500 transition-colors font-semibold text-white shadow"
+                  className="text-sm bg-purple-600 border border-purple-500 px-4 py-0.5 rounded-lg hover:bg-purple-500 transition-colors font-semibold text-white shadow"
                 >
                   Resume
                 </a>
               </div>
-              <h2 className="text-xl font-bold">Gitansh Kothari</h2>
-              <p className="text-zinc-400">
-                Computer Engineering Graduate & ML Engineer
+              <h2 className="text-2xl font-bold mb-1">Gitansh Kothari</h2>
+              <p className="text-zinc-400 text-sm">
+                Computer Engineering Graduate & ML Engineers
               </p>
             </div>
           </div>
 
-          <div className="grid grid-cols-3 gap-4 text-sm text-zinc-300">
-            <div className="flex items-center gap-2">
-              <span>
-                <MapPin />
-              </span>{" "}
-              Toronto, Canada
+          
+
+          <div className="grid grid-cols-2 gap-4 mb-6">
+            <div className="space-y-3">
+              <h3 className="text-sm font-semibold text-purple-300 mb-2">📍 Location</h3>
+              <div className="flex items-center gap-2 text-sm text-zinc-300">
+                <MapPin size={16} />
+                Toronto, Canada
+              </div>
+              <div className="flex items-center gap-2 text-sm text-zinc-300">
+                <Clock size={16} />
+                EST Timezone
+              </div>
             </div>
-            <div className="flex items-center gap-2">
-              <span>
-                <Languages />
-              </span>{" "}
-              English &amp; Hindi
-            </div>
-            <div className="flex items-center gap-2">
-              <span>
-                <Briefcase />
-              </span>{" "}
-              Software Engineering Intern
-            </div>
-            <div className="flex items-center gap-2">
-              <span>
-                <GraduationCap />
-              </span>{" "}
-              UofT Graduate
-            </div>
-            <div className="flex items-center gap-2">
-              <span>
-                <Clock />
-              </span>{" "}
-              EST
+            
+            <div className="space-y-3">
+              <h3 className="text-sm font-semibold text-purple-300 mb-2">🎓 Education</h3>
+              <div className="flex items-center gap-2 text-sm text-zinc-300">
+                <GraduationCap size={16} />
+                UofT Graduate
+              </div>
+              <div className="flex items-center gap-2 text-sm text-zinc-300">
+                <Languages size={16} />
+                English & Hindi
+              </div>
             </div>
           </div>
 
-          <div className="mt-6 grid grid-cols-2 gap-4 text-sm text-zinc-300">
-            <div className="flex items-center gap-2">
-              <span>📷</span> DM me (Instagram)
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-3">
+              <h3 className="text-sm font-semibold text-purple-300 mb-2">💼 Current Role</h3>
+              <div className="flex items-center gap-2 text-sm text-zinc-300">
+                <Briefcase size={16} />
+                Seeking Full-Time Opportunities
+              </div>
             </div>
-            <div className="flex items-center gap-2">
-              <span>💬</span> WhatsApp Me
+            
+            <div className="space-y-3">
+              <h3 className="text-sm font-semibold text-purple-300 mb-2">🎯 Focus Areas</h3>
+              <div className="space-y-2">
+                <div className="flex items-center gap-2 text-sm text-zinc-300">
+                  <span>👁️</span> Computer Vision
+                </div>
+                <div className="flex items-center gap-2 text-sm text-zinc-300">
+                  <span>🧠</span> Reinforcement Learning
+                </div>
+                <div className="flex items-center gap-2 text-sm text-zinc-300">
+                  <span>🚗</span> Autonomous Vehicles
+                </div>
+                
+              </div>
             </div>
           </div>
         </motion.div>
 
-        {/* MIDDLE RIGHT — LARGE WORK GALLERY (cols 9–12, rows 3–6) */}
         <motion.div
           variants={slideInRight}
           animate={profileInView ? "visible" : "hidden"}
@@ -307,14 +321,12 @@ export default function BentoGrid() {
           <div className={tileTitle}>📁 Projects</div>
           <div className={tileHeading}>Works Gallery</div>
           <div className="mt-4 grid grid-cols-2 gap-3 relative">
-            {/* Example boxes with background blur, shadow, and slight scale for depth */}
             <div className="aspect-[4/3] rounded-xl bg-gradient-to-br from-indigo-500/60 to-purple-600/60 shadow-xl backdrop-blur-md scale-95 opacity-80" />
             <div className="aspect-[4/3] rounded-xl bg-gradient-to-br from-fuchsia-500/60 to-purple-600/60 shadow-xl backdrop-blur-md scale-95 opacity-80" />
             <div className="aspect-[4/3] rounded-xl bg-gradient-to-br from-cyan-500/50 to-indigo-600/60 shadow-xl backdrop-blur-md scale-95 opacity-80" />
             <div className="aspect-[4/3] rounded-xl bg-gradient-to-br from-violet-500/50 to-fuchsia-600/60 shadow-xl backdrop-blur-md scale-95 opacity-80" />
-            {/* Overlay button */}
             <button
-              className="absolute left-1/2 -translate-x-1/2 bottom-8 z-10 w-3/4 rounded-lg py-2 text-sm font-medium bg-purple-600 hover:bg-purple-500 transition-colors shadow-2xl"
+              className="absolute left-1/2 -translate-x-1/2 bottom-2 z-10 w-3/4 rounded-lg py-2 text-sm font-medium bg-purple-600 hover:bg-purple-500 transition-colors shadow-2xl"
               style={{ pointerEvents: "auto" }}
             >
               View All Projects
@@ -322,24 +334,59 @@ export default function BentoGrid() {
           </div>
         </motion.div>
 
-        {/* BOTTOM LEFT — CLIENTS (cols 3–8, rows 7–8) */}
         <motion.div
           variants={slideInBottom}
           animate={profileInView ? "visible" : "hidden"}
           className={`col-span-12 md:col-span-6 md:row-span-2 ${card} p-4`}
         >
-          <div className={tileTitle}>👥 My Clients</div>
-          <div className={tileHeading}>Satisfied Partners</div>
-          <div className="flex items-center justify-between mt-4 text-zinc-400 text-sm">
-            <div>Magna Vectrics</div>
-            <div>Mad Street Den</div>
-            <div>Altiore Capital</div>
-            <div>University of Toronto</div>
-            <div>Greenwood High</div>
+          <div className={tileTitle}>⚙️ My Work Process</div>
+          
+          {/* Work Process Steps - Zigzag Pattern */}
+          <div className="mt-4">
+            <div className="flex flex-wrap justify-center items-start gap-4">
+              {steps.map((step, index) => (
+                <div key={index} className="flex items-center gap-7">
+                  {/* Diamond Card with alternating vertical position */}
+                  <motion.div
+                    initial={{ opacity: 0, y: 20 }}
+                    whileInView={{ opacity: 1, y: 0 }}
+                    viewport={{ once: true }}
+                    transition={{ duration: 0.5, delay: index * 0.1 }}
+                    className={`relative w-20 h-20 ${index % 2 === 1 ? 'mt-8' : 'mt-0'}`}
+                  >
+                    <div className="absolute inset-0 rotate-45 border border-zinc-600 rounded-lg"></div>
+                    <motion.div
+                      whileHover={{ scale: 1.05, boxShadow: "0px 0px 20px rgba(168,85,247,0.3)" }}
+                      className="absolute inset-1 rotate-45 bg-gradient-to-br from-zinc-900 to-zinc-800 border border-zinc-700 flex items-center justify-center text-center rounded-lg"
+                    >
+                      <span className="-rotate-45 font-medium text-xs text-center leading-tight px-1">
+                        {step}
+                      </span>
+                    </motion.div>
+                  </motion.div>
+
+                  {/* Arrow except for last one */}
+                  {index < steps.length - 1 && (
+                    <motion.div
+                      initial={{ opacity: 0 }}
+                      whileInView={{ opacity: 1 }}
+                      viewport={{ once: true }}
+                      transition={{ duration: 0.5, delay: index * 0.15 }}
+                      className={`text-purple-400 ${index % 2 === 1 ? 'mt-6' : 'mt-6 -ml-2'}`}
+                    >
+                      {index % 2 === 0 ? (
+                        <ArrowDownRight className="w-6 h-6" />
+                      ) : (
+                        <ArrowUpRight className="w-6 h-6" />
+                      )}
+                    </motion.div>
+                  )}
+                </div>
+              ))}
+            </div>
           </div>
         </motion.div>
 
-        {/* BOTTOM RIGHT — CONTACT / CTA (cols 9–12, rows 7–8) */}
         <motion.div
           variants={slideInBottom}
           animate={profileInView ? "visible" : "hidden"}
@@ -351,12 +398,22 @@ export default function BentoGrid() {
               Let&apos;s make something great.
             </p>
             <div className="space-y-2">
-              <button className="w-full rounded-lg py-2 text-sm font-medium bg-white text-purple-800">
+              <a 
+                href="mailto:gitanshkothari2002@gmail.com?subject=Let's Connect&body=Hi Gitansh,%0D%0A%0D%0AI'd love to connect with you.%0D%0A%0D%0ABest regards,"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="block w-full rounded-lg py-2 text-sm font-medium bg-white text-purple-800 hover:bg-gray-100 transition-colors text-center"
+              >
                 📧 Email Me
-              </button>
-              <button className="w-full rounded-lg py-2 text-sm font-medium bg-purple-600 text-white hover:bg-purple-500 transition-colors">
+              </a>
+              <a 
+                href="https://calendly.com/gitanshkothari2002/30min"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="block w-full rounded-lg py-2 text-sm font-medium bg-purple-600 text-white hover:bg-purple-500 transition-colors text-center"
+              >
                 📅 Schedule a Call
-              </button>
+              </a>
             </div>
           </div>
         </motion.div>

@@ -9,13 +9,11 @@ import {
   Clock,
   Linkedin,
   Github,
-  Globe,
   FolderKanban,
   Cpu,
   CalendarClock,
   Clipboard,
   ClipboardCheck,
-  ArrowRight,
   ArrowDownRight,
   ArrowUpRight
 } from "lucide-react";
@@ -28,10 +26,11 @@ const steps = [
   "Deploy",
 ];
 const slideInLeft: Variants = {
-  hidden: { opacity: 0, x: -200 },
+  hidden: { opacity: 0, x: -200, pointerEvents: "none" },
   visible: {
     opacity: 1,
     x: 0,
+    pointerEvents: "auto",
     transition: {
       type: "spring",
       stiffness: 100,
@@ -41,10 +40,11 @@ const slideInLeft: Variants = {
 };
 
 const slideInTop: Variants = {
-  hidden: { opacity: 0, y: -200 },
+  hidden: { opacity: 0, y: -200, pointerEvents: "none" },
   visible: {
     opacity: 1,
     y: 0,
+    pointerEvents: "auto",
     transition: {
       type: "spring",
       stiffness: 100,
@@ -54,10 +54,11 @@ const slideInTop: Variants = {
 };
 
 const slideInRight: Variants = {
-  hidden: { opacity: 0, x: 200 },
+  hidden: { opacity: 0, x: 200, pointerEvents: "none" },
   visible: {
     opacity: 1,
     x: 0,
+    pointerEvents: "auto",
     transition: {
       type: "spring",
       stiffness: 100,
@@ -67,10 +68,11 @@ const slideInRight: Variants = {
 };
 
 const slideInBottom: Variants = {
-  hidden: { opacity: 0, y: 200 },
+  hidden: { opacity: 0, y: 200, pointerEvents: "none" },
   visible: {
     opacity: 1,
     y: 0,
+    pointerEvents: "auto",
     transition: {
       type: "spring",
       stiffness: 100,

@@ -58,7 +58,7 @@ export function HeroText() {
         transition={{ duration: 0.6, ease: "easeOut", delay: 0.4 }}
         className="max-w-lg text-zinc-400 mx-auto md:mx-0"
       >
-        I'm a Computer Engineering graduate from the University of Toronto, passionate about 
+        I&apos;m a Computer Engineering graduate from the University of Toronto, passionate about 
         machine learning and software development. I build intelligent systems and create 
         innovative solutions. Welcome to my portfolio.
       </motion.p>

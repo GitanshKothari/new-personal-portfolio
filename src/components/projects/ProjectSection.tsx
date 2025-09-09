@@ -27,20 +27,19 @@ export function ProjectSection({
   const [isModalOpen, setIsModalOpen] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
 
-  // Responsive items per view
-  const getResponsiveItemsPerView = () => {
-    if (typeof window !== 'undefined') {
-      if (window.innerWidth < 640) return 1; // Mobile
-      if (window.innerWidth < 1024) return 2; // Tablet
-      return itemsPerView; // Desktop
-    }
-    return itemsPerView;
-  };
-
   const [responsiveItemsPerView, setResponsiveItemsPerView] = useState(itemsPerView);
 
   // Update responsive items per view on window resize
   useEffect(() => {
+    const getResponsiveItemsPerView = () => {
+      if (typeof window !== 'undefined') {
+        if (window.innerWidth < 640) return 1; // Mobile
+        if (window.innerWidth < 1024) return 2; // Tablet
+        return itemsPerView; // Desktop
+      }
+      return itemsPerView;
+    };
+
     const handleResize = () => {
       setResponsiveItemsPerView(getResponsiveItemsPerView());
     };
@@ -48,7 +47,7 @@ export function ProjectSection({
     handleResize(); // Set initial value
     window.addEventListener('resize', handleResize);
     return () => window.removeEventListener('resize', handleResize);
-  }, []);
+  }, [itemsPerView]);
 
   const maxIndex = Math.max(0, projects.length - responsiveItemsPerView);
   const canGoNext = currentIndex < maxIndex;
@@ -66,7 +65,6 @@ export function ProjectSection({
     }
   };
 
-  const visibleProjects = projects.slice(currentIndex, currentIndex + responsiveItemsPerView);
 
   const handleProjectClick = (project: Project) => {
     setSelectedProject(project);
@@ -80,12 +78,9 @@ export function ProjectSection({
 
   return (
     <section className="py-16 px-4 max-w-7xl mx-auto">
-      {/* Header */}
       <SectionHeader title={title} subtitle={subtitle} align="center" />
 
-      {/* Projects Container */}
       <div className="relative overflow-x-clip">
-        {/* Navigation Buttons - Only show when there are items to navigate to */}
         {canGoPrev && (
           <Button
             onClick={prevSlide}
@@ -104,7 +99,6 @@ export function ProjectSection({
           </Button>
         )}
 
-        {/* Projects Grid */}
         <div 
           ref={containerRef}
           className="overflow-hidden"
@@ -131,7 +125,6 @@ export function ProjectSection({
           </motion.div>
         </div>
 
-        {/* Dots Indicator */}
         {projects.length > responsiveItemsPerView && (
           <div className="flex justify-center mt-8 gap-2">
             {Array.from({ length: maxIndex + 1 }).map((_, index) => (

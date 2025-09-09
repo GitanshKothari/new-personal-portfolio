@@ -1,4 +1,4 @@
-import React, { useRef } from "react";
+import React, { useRef, useState } from "react";
 import { useInView } from "framer-motion";
 import type { Variants } from "framer-motion";
 import {
@@ -13,6 +13,8 @@ import {
   FolderKanban,
   Cpu,
   CalendarClock,
+  Clipboard,
+  ClipboardCheck,
 } from "lucide-react";
 import { motion } from "framer-motion";
 
@@ -93,12 +95,12 @@ export default function BentoGrid() {
 
   return (
     <div className="min-h-screen  text-white p-4">
-      <div className="max-w-7xl mx-auto h-screen grid grid-cols-12 grid-rows-8 gap-4">
+      <div className="max-w-7xl mx-auto min-h-screen grid grid-cols-1 md:grid-cols-12 md:grid-rows-8 gap-4">
         {/* LEFT SIDEBAR (cols 1–2, rows 1–8) */}
         <motion.div
           variants={slideInLeft}
           animate={profileInView ? "visible" : "hidden"}
-          className={`col-span-2 row-span-8 ${card} p-4`}
+          className={`col-span-12 md:col-span-2 md:row-span-8 ${card} p-4`}
         >
           <div className={tileTitle}>📚 My Stacks</div>
           <div className={tileHeading}>Tech Arsenal</div>
@@ -145,7 +147,7 @@ export default function BentoGrid() {
         <motion.div
           variants={slideInTop}
           animate={profileInView ? "visible" : "hidden"}
-          className={`col-span-2 row-span-2 ${statBox}`}
+          className={`col-span-12 sm:col-span-6 md:col-span-2 md:row-span-2 ${statBox}`}
         >
           <div className="text-4xl font-bold">10+</div>
           <div className="flex items-center gap-2 text-sm mt-1 text-purple-300">
@@ -158,7 +160,7 @@ export default function BentoGrid() {
         <motion.div
           variants={slideInTop}
           animate={profileInView ? "visible" : "hidden"}
-          className={`col-span-2 row-span-2 ${statBox}`}
+          className={`col-span-12 sm:col-span-6 md:col-span-2 md:row-span-2 ${statBox}`}
         >
           <div className="text-4xl font-bold">20+</div>
           <div className="flex items-center gap-2 text-sm mt-1 text-purple-300">
@@ -171,7 +173,7 @@ export default function BentoGrid() {
         <motion.div
           variants={slideInTop}
           animate={profileInView ? "visible" : "hidden"}
-          className={`col-span-2 row-span-2 ${statBox}`}
+          className={`col-span-12 sm:col-span-6 md:col-span-2 md:row-span-2 ${statBox}`}
         >
           <div className="text-4xl font-bold">03+</div>
           <div className="flex items-center gap-2 text-sm mt-1 text-purple-300">
@@ -186,45 +188,36 @@ export default function BentoGrid() {
         <motion.div
           variants={slideInTop}
           animate={profileInView ? "visible" : "hidden"}
-          className={`col-span-4 row-span-2 ${card} p-4 flex flex-col justify-center`}
+          className={`col-span-12 md:col-span-4 md:row-span-2 ${card} p-4 flex flex-col justify-center`}
         >
-          <div className="text-4xl mb-2 text-purple-300 text-center">
+          <div className="text-2xl mb-2 text-purple-300 text-center">
             👋 Follow Me
           </div>
-          <div className="flex justify-center gap-3 mb-4 flex-wrap">
+
+          {/* Social buttons with labels */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-4 w-full">
             <a
-              href="#"
-              className="flex items-center justify-center rounded-xl border border-white/10 bg-zinc-900/40 w-12 h-12 text-xl text-zinc-300 hover:bg-zinc-800/50 hover:text-white transition-colors"
+              href="https://github.com/GitanshKothari"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center justify-center gap-2 rounded-xl border border-white/10 bg-zinc-900/40 px-4 py-3 text-sm font-medium text-zinc-200 hover:bg-zinc-800/50 hover:text-white transition-colors w-full"
             >
-              <Github />
+              <span className="text-xl"><Github /></span>
+              <span className="truncate">GitHub</span>
             </a>
             <a
-              href="#"
-              className="flex items-center justify-center rounded-xl border border-white/10 bg-zinc-900/40 w-12 h-12 text-xl text-zinc-300 hover:bg-zinc-800/50 hover:text-white transition-colors"
+              href="https://www.linkedin.com/in/gitansh-kothari"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center justify-center gap-2 rounded-xl border border-white/10 bg-zinc-900/40 px-4 py-3 text-sm font-medium text-zinc-200 hover:bg-zinc-800/50 hover:text-white transition-colors w-full"
             >
-              <Linkedin />
-            </a>
-            <a
-              href="#"
-              className="flex items-center justify-center rounded-xl border border-white/10 bg-zinc-900/40 w-12 h-12 text-xl text-zinc-300 hover:bg-zinc-800/50 hover:text-white transition-colors"
-            >
-              <Briefcase />
-            </a>
-            <a
-              href="#"
-              className="flex items-center justify-center rounded-xl border border-white/10 bg-zinc-900/40 w-12 h-12 text-xl text-zinc-300 hover:bg-zinc-800/50 hover:text-white transition-colors"
-            >
-              <Globe />
+              <span className="text-xl"><Linkedin /></span>
+              <span className="truncate">LinkedIn</span>
             </a>
           </div>
-          <div className="flex gap-3">
-            <button className="rounded-xl flex-1 py-3 text-sm font-medium bg-purple-600 hover:bg-purple-500 transition-colors whitespace-nowrap overflow-hidden text-ellipsis">
-              📧 Email Me
-            </button>
-            <button className="rounded-xl flex-1 py-3 text-sm font-medium bg-zinc-900/60 border border-white/10 hover:bg-zinc-800/60 transition-colors whitespace-nowrap overflow-hidden text-ellipsis">
-              📋 Copy Address
-            </button>
-          </div>
+
+          {/* Email CTAs */}
+          <MarkdownCopyEmail />
         </motion.div>
 
         {/* MIDDLE — MAIN PROFILE (cols 3–8, rows 3–6) */}
@@ -234,7 +227,7 @@ export default function BentoGrid() {
           initial="hidden"
           whileInView="visible"
           viewport={{ once: false, amount: 0.5 }}
-          className={`col-span-6 row-span-4 ${card} p-6`}
+          className={`col-span-12 md:col-span-6 md:row-span-4 ${card} p-6`}
         >
           <div className="flex items-center gap-4 mb-4">
             <div className="w-16 h-16 rounded-xl bg-gradient-to-br from-purple-500 to-indigo-500 flex items-center justify-center">
@@ -309,7 +302,7 @@ export default function BentoGrid() {
         <motion.div
           variants={slideInRight}
           animate={profileInView ? "visible" : "hidden"}
-          className={`col-span-4 row-span-4 ${card} p-6 relative`}
+          className={`col-span-12 md:col-span-4 md:row-span-4 ${card} p-6 relative`}
         >
           <div className={tileTitle}>📁 Projects</div>
           <div className={tileHeading}>Works Gallery</div>
@@ -333,7 +326,7 @@ export default function BentoGrid() {
         <motion.div
           variants={slideInBottom}
           animate={profileInView ? "visible" : "hidden"}
-          className={`col-span-6 row-span-2 ${card} p-4`}
+          className={`col-span-12 md:col-span-6 md:row-span-2 ${card} p-4`}
         >
           <div className={tileTitle}>👥 My Clients</div>
           <div className={tileHeading}>Satisfied Partners</div>
@@ -350,7 +343,7 @@ export default function BentoGrid() {
         <motion.div
           variants={slideInBottom}
           animate={profileInView ? "visible" : "hidden"}
-          className="col-span-4 row-span-2 rounded-2xl p-4 border border-purple-500/40 bg-gradient-to-br from-purple-600/30 to-indigo-600/30"
+          className="col-span-12 md:col-span-4 md:row-span-2 rounded-2xl p-4 border border-purple-500/40 bg-gradient-to-br from-purple-600/30 to-indigo-600/30"
         >
           <div className="text-center">
             <h3 className="font-bold text-lg mb-1">Let&apos;s Work Together</h3>
@@ -367,6 +360,51 @@ export default function BentoGrid() {
             </div>
           </div>
         </motion.div>
+      </div>
+    </div>
+  );
+}
+
+function MarkdownCopyEmail() {
+  const [copied, setCopied] = useState(false);
+  const email = "gitanshkothari2002@gmail.com";
+
+  const handleCopy = async () => {
+    try {
+      if (navigator?.clipboard?.writeText) {
+        await navigator.clipboard.writeText(email);
+        setCopied(true);
+        setTimeout(() => setCopied(false), 1500);
+      }
+    } catch {
+      // swallow
+    }
+  };
+
+  return (
+    <div className="flex w-full items-center justify-between rounded-xl border border-white/10 bg-zinc-900/60">
+      <div className="px-4 py-3 font-mono text-sm text-zinc-200/90 truncate" title={email}>
+        {email}
+      </div>
+      <div className="pr-2">
+        <button
+          type="button"
+          onClick={handleCopy}
+          aria-live="polite"
+          className="inline-flex items-center gap-2 rounded-lg bg-zinc-800/60 px-3 py-2 text-sm font-medium text-zinc-200 hover:bg-zinc-700/60 transition-colors border border-white/10"
+        >
+          {copied ? (
+            <>
+              <ClipboardCheck size={16} />
+              Copied
+            </>
+          ) : (
+            <>
+              <Clipboard size={16} />
+              Copy
+            </>
+          )}
+        </button>
       </div>
     </div>
   );

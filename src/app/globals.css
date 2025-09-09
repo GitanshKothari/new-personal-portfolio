@@ -163,6 +163,30 @@ html {
   }
 }
 
+@layer utilities {
+  .line-clamp-3 {
+    display: -webkit-box;
+    -webkit-line-clamp: 3;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+  
+  .project-card {
+    min-height: 400px;
+    max-height: 400px;
+  }
+  
+  .project-tech-badge {
+    font-size: 0.75rem !important;
+    padding: 0.25rem 0.5rem !important;
+    line-height: 1rem !important;
+    height: 1.5rem !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    white-space: nowrap !important;
+  }
+}
+
 .bg-purple-noir {
   background-color: oklch(0.14 0.01 285);
   background-image: radial-gradient(
@@ -180,6 +204,11 @@ html {
 
 body {
   font-family: var(--font-sora), system-ui, sans-serif;
+}
+
+/* Prevent horizontal scroll globally */
+html, body {
+  overflow-x: hidden;
 }
 
 @keyframes wave {

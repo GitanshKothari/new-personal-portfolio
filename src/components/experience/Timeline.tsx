@@ -2,7 +2,7 @@
 
 import { useState, useRef } from "react";
 import { motion } from "framer-motion";
-import { Badge } from "@/components/ui/badge";
+import { SectionHeader } from "@/components/ui/section-header";
 import { experienceData } from "./experienceData";
 import { TimelineLine } from "./TimelineLine";
 import { TimelineItem } from "./TimelineItem";
@@ -18,22 +18,7 @@ export function Timeline() {
       className="py-20 relative overflow-hidden"
     >
       <div className="max-w-6xl mx-auto px-4">
-        <motion.div
-          initial="hidden"
-          whileInView="visible"
-          viewport={{ once: true }}
-          transition={{ duration: 0.6 }}
-          variants={{
-            hidden: { opacity: 0, y: 20 },
-            visible: { opacity: 1, y: 0 },
-          }}
-          className="text-center mb-16"
-        >
-          <Badge variant="outline" className="mb-4">
-            Experience
-          </Badge>
-          <div className="w-20 h-1 bg-primary mx-auto"></div>
-        </motion.div>
+        <SectionHeader title="Experience" align="center" />
 
         <div className="relative">
           <TimelineLine containerRef={containerRef} />

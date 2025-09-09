@@ -163,6 +163,26 @@ html {
   }
 }
 
+@layer utilities {
+  .line-clamp-3 {
+    display: -webkit-box;
+    -webkit-line-clamp: 3;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+  
+  .project-card {
+    min-height: 400px;
+    max-height: 400px;
+  }
+  
+  .project-tech-badge {
+    font-size: 0.75rem !important;
+    padding: 0.125rem 0.5rem !important;
+    line-height: 1rem !important;
+  }
+}
+
 .bg-purple-noir {
   background-color: oklch(0.14 0.01 285);
   background-image: radial-gradient(

@@ -90,23 +90,25 @@ export function ProjectSection({
       </div>
 
       {/* Projects Container */}
-      <div className="relative">
-        {/* Navigation Buttons */}
-        <Button
-          onClick={prevSlide}
-          disabled={!canGoPrev}
-          className="absolute left-0 top-1/2 -translate-y-1/2 -translate-x-4 z-10 bg-slate-800/80 hover:bg-purple-600/80 text-white h-12 w-12 rounded-full shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
-        >
-          <ChevronLeft className="w-5 h-5" />
-        </Button>
+      <div className="relative overflow-x-clip">
+        {/* Navigation Buttons - Only show when there are items to navigate to */}
+        {canGoPrev && (
+          <Button
+            onClick={prevSlide}
+            className="absolute left-2 top-1/2 -translate-y-1/2 z-10 bg-slate-800/80 hover:bg-purple-600/80 text-white h-12 w-12 rounded-full shadow-lg"
+          >
+            <ChevronLeft className="w-5 h-5" />
+          </Button>
+        )}
 
-        <Button
-          onClick={nextSlide}
-          disabled={!canGoNext}
-          className="absolute right-0 top-1/2 -translate-y-1/2 translate-x-4 z-10 bg-slate-800/80 hover:bg-purple-600/80 text-white h-12 w-12 rounded-full shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
-        >
-          <ChevronRight className="w-5 h-5" />
-        </Button>
+        {canGoNext && (
+          <Button
+            onClick={nextSlide}
+            className="absolute right-2 top-1/2 -translate-y-1/2 z-10 bg-slate-800/80 hover:bg-purple-600/80 text-white h-12 w-12 rounded-full shadow-lg"
+          >
+            <ChevronRight className="w-5 h-5" />
+          </Button>
+        )}
 
         {/* Projects Grid */}
         <div 
@@ -114,7 +116,7 @@ export function ProjectSection({
           className="overflow-hidden"
         >
           <motion.div
-            className="flex gap-6 transition-transform duration-500 ease-in-out"
+            className="flex -mx-3 transition-transform duration-500 ease-in-out"
             style={{
               transform: `translateX(-${currentIndex * (100 / responsiveItemsPerView)}%)`,
             }}
@@ -122,7 +124,7 @@ export function ProjectSection({
             {projects.map((project, index) => (
               <div
                 key={project.id}
-                className="flex-shrink-0 w-full"
+                className="flex-shrink-0 w-full box-border px-3"
                 style={{ width: `${100 / responsiveItemsPerView}%` }}
               >
                 <ProjectCard 

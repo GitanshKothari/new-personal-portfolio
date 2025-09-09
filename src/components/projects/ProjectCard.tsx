@@ -79,12 +79,12 @@ export function ProjectCard({ project, index, onClick }: ProjectCardProps) {
         </div>
 
         {/* Technologies */}
-        <div className="flex flex-wrap gap-2 mt-auto h-16 overflow-hidden">
+        <div className="flex flex-wrap gap-2 mt-auto min-h-[3.5rem] max-h-[3.5rem] overflow-hidden">
           {project.technologies.slice(0, 6).map((tech, techIndex) => (
             <Badge
               key={techIndex}
               variant="outline"
-              className="project-tech-badge border-gray-600 text-gray-300 hover:border-purple-500 hover:text-purple-300 transition-colors"
+              className="project-tech-badge border-gray-600 text-gray-300 hover:border-purple-500 hover:text-purple-300 transition-colors flex-shrink-0"
             >
               {tech}
             </Badge>
@@ -92,7 +92,7 @@ export function ProjectCard({ project, index, onClick }: ProjectCardProps) {
           {project.technologies.length > 6 && (
             <Badge
               variant="outline"
-              className="project-tech-badge border-gray-600 text-gray-300"
+              className="project-tech-badge border-gray-600 text-gray-300 flex-shrink-0"
             >
               +{project.technologies.length - 6} more
             </Badge>

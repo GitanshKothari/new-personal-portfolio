@@ -178,8 +178,12 @@ html {
   
   .project-tech-badge {
     font-size: 0.75rem !important;
-    padding: 0.125rem 0.5rem !important;
+    padding: 0.25rem 0.5rem !important;
     line-height: 1rem !important;
+    height: 1.5rem !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    white-space: nowrap !important;
   }
 }
 
@@ -200,6 +204,11 @@ html {
 
 body {
   font-family: var(--font-sora), system-ui, sans-serif;
+}
+
+/* Prevent horizontal scroll globally */
+html, body {
+  overflow-x: hidden;
 }
 
 @keyframes wave {

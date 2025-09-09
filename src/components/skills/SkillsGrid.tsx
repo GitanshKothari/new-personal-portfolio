@@ -20,7 +20,6 @@ const domainLabels = {
 export function SkillsGrid() {
   const [selectedSkill, setSelectedSkill] = useState<Skill | null>(null);
   const [isVisible, setIsVisible] = useState(false);
-  const [scrollY, setScrollY] = useState(0);
   const [hoveredSkill, setHoveredSkill] = useState<string | null>(null);
   const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
   const sectionRef = useRef<HTMLDivElement>(null);
@@ -42,14 +41,6 @@ export function SkillsGrid() {
     return () => observer.disconnect();
   }, []);
 
-  useEffect(() => {
-    const handleScroll = () => {
-      setScrollY(window.scrollY);
-    };
-
-    window.addEventListener('scroll', handleScroll);
-    return () => window.removeEventListener('scroll', handleScroll);
-  }, []);
 
   const skillsByDomain = skills.reduce((acc, skill) => {
     if (!acc[skill.domain]) {

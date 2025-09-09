@@ -2,6 +2,7 @@
 
 import { motion } from "framer-motion";
 import { GraduationCap } from "lucide-react";
+import { SectionHeader } from "@/components/ui/section-header";
 
 const card =
   "relative rounded-2xl bg-gray-900/40 border border-gray-700/50 backdrop-blur-xl shadow-[0_0_0_1px_rgba(255,255,255,0.05)] p-6 flex flex-col";
@@ -48,15 +49,7 @@ export default function Education() {
       </motion.div>
 
       <div className="container mx-auto px-4 relative z-10">
-        <motion.h2
-          initial={{ opacity: 0, y: 20 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.6 }}
-          viewport={{ once: true }}
-          className="text-4xl md:text-5xl font-bold text-center mb-16 text-purple-200"
-        >
-          Education
-        </motion.h2>
+        <SectionHeader title="Education" align="center" />
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-6xl mx-auto">
           {educationData.map((edu, idx) => (

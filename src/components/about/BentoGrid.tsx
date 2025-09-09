@@ -103,7 +103,7 @@ export default function BentoGrid() {
   });
 
   return (
-    <div className="min-h-screen  text-white p-4">
+    <div id="about" className="min-h-screen  text-white p-4">
       <div className="max-w-7xl mx-auto min-h-screen grid grid-cols-1 md:grid-cols-12 md:grid-rows-8 gap-4">    
         <motion.div
           variants={slideInLeft}

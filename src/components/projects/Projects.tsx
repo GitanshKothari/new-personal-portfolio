@@ -5,7 +5,7 @@ import { featuredProjects, allProjects } from "./projectsData";
 
 export function Projects() {
   return (
-    <div className="min-h-screen bg-purple-noir">
+    <div id="projects" className="min-h-screen bg-purple-noir">
       {/* Featured Projects Section */}
       <ProjectSection
         title="Featured Projects"

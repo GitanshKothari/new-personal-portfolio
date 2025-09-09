@@ -8,7 +8,8 @@ import {
   FolderKanban,
   FileText,
   User,
-  FileCode2,
+  Wrench,
+  FileText as FileTextIcon,
 } from "lucide-react";
 
 const menuItems = [
@@ -21,12 +22,28 @@ const menuItems = [
     iconColor: "text-purple-400",
   },
   {
+    icon: <User className="h-5 w-5" />,
+    label: "About",
+    href: "#about",
+    gradient:
+      "radial-gradient(circle, rgba(239,68,68,0.2) 0%, rgba(185,28,28,0.1) 50%, rgba(127,29,29,0) 100%)",
+    iconColor: "text-red-400",
+  },
+  {
     icon: <BookOpen className="h-5 w-5" />,
     label: "Education",
     href: "#education",
     gradient:
       "radial-gradient(circle, rgba(59,130,246,0.2) 0%, rgba(37,99,235,0.1) 50%, rgba(29,78,216,0) 100%)",
     iconColor: "text-blue-400",
+  },
+  {
+    icon: <FileText className="h-5 w-5" />,
+    label: "Experience",
+    href: "#experience",
+    gradient:
+      "radial-gradient(circle, rgba(34,197,94,0.2) 0%, rgba(21,128,61,0.1) 50%, rgba(22,163,74,0) 100%)",
+    iconColor: "text-green-400",
   },
   {
     icon: <FolderKanban className="h-5 w-5" />,
@@ -37,28 +54,20 @@ const menuItems = [
     iconColor: "text-pink-400",
   },
   {
-    icon: <FileText className="h-5 w-5" />,
-    label: "Blog",
-    href: "#blog",
+    icon: <Wrench className="h-5 w-5" />,
+    label: "Skills",
+    href: "#skills",
     gradient:
-      "radial-gradient(circle, rgba(34,197,94,0.2) 0%, rgba(21,128,61,0.1) 50%, rgba(22,163,74,0) 100%)",
-    iconColor: "text-green-400",
+      "radial-gradient(circle, rgba(245,158,11,0.2) 0%, rgba(217,119,6,0.1) 50%, rgba(180,83,9,0) 100%)",
+    iconColor: "text-amber-400",
   },
   {
-    icon: <User className="h-5 w-5" />,
-    label: "About",
-    href: "#about",
-    gradient:
-      "radial-gradient(circle, rgba(239,68,68,0.2) 0%, rgba(185,28,28,0.1) 50%, rgba(127,29,29,0) 100%)",
-    iconColor: "text-red-400",
-  },
-  {
-    icon: <FileCode2 className="h-5 w-5" />,
+    icon: <FileTextIcon className="h-5 w-5" />,
     label: "Resume",
-    href: "#resume",
+    href: "/resume",
     gradient:
-      "radial-gradient(circle, rgba(20,184,166,0.2) 0%, rgba(13,148,136,0.1) 50%, rgba(15,118,110,0) 100%)",
-    iconColor: "text-teal-400",
+      "radial-gradient(circle, rgba(99,102,241,0.2) 0%, rgba(79,70,229,0.1) 50%, rgba(67,56,202,0) 100%)",
+    iconColor: "text-indigo-400",
   },
 ];
 
@@ -139,12 +148,14 @@ export function Navbar() {
                   transformOrigin: "center bottom",
                 }}
               >
-                <span
-                  className={`transition-colors duration-300 ${item.iconColor}`}
-                >
-                  {item.icon}
-                </span>
-                <Link href={item.href}>{item.label}</Link>
+                <Link href={item.href} className="flex items-center gap-2">
+                  <span
+                    className={`transition-colors duration-300 ${item.iconColor}`}
+                  >
+                    {item.icon}
+                  </span>
+                  {item.label}
+                </Link>
               </motion.div>
 
               <motion.div
@@ -157,12 +168,14 @@ export function Navbar() {
                   rotateX: 90,
                 }}
               >
-                <span
-                  className={`transition-colors duration-300 ${item.iconColor}`}
-                >
-                  {item.icon}
-                </span>
-                <Link href={item.href}>{item.label}</Link>
+                <Link href={item.href} className="flex items-center gap-2">
+                  <span
+                    className={`transition-colors duration-300 ${item.iconColor}`}
+                  >
+                    {item.icon}
+                  </span>
+                  {item.label}
+                </Link>
               </motion.div>
             </motion.div>
           </motion.li>

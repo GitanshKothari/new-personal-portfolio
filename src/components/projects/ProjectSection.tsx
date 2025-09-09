@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { ProjectCard } from "./ProjectCard";
 import { ProjectModal } from "./ProjectModal";
 import { Project } from "./projectsData";
+import { SectionHeader } from "@/components/ui/section-header";
 
 interface ProjectSectionProps {
   title: string;
@@ -80,14 +81,7 @@ export function ProjectSection({
   return (
     <section className="py-16 px-4 max-w-7xl mx-auto">
       {/* Header */}
-      <div className="text-center mb-12">
-        <h2 className="text-3xl md:text-5xl font-bold mb-4 bg-gradient-to-r from-white via-purple-200 to-purple-400 bg-clip-text text-transparent">
-          {title}
-        </h2>
-        <p className="text-lg text-slate-300 max-w-2xl mx-auto">
-          {subtitle}
-        </p>
-      </div>
+      <SectionHeader title={title} subtitle={subtitle} align="center" />
 
       {/* Projects Container */}
       <div className="relative overflow-x-clip">

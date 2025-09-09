@@ -42,7 +42,7 @@ export function HeroText() {
         className="text-2xl md:text-3xl font-semibold text-zinc-300"
       >
         <Typewriter
-          words={["A Software Engineer", "An ML Engineer"]}
+          words={["A Machine Learning Engineer", "A Software Developer"]}
           loop={0}
           cursor
           cursorStyle="|"
@@ -58,8 +58,9 @@ export function HeroText() {
         transition={{ duration: 0.6, ease: "easeOut", delay: 0.4 }}
         className="max-w-lg text-zinc-400 mx-auto md:mx-0"
       >
-        I design and build intelligent systems — blending software engineering
-        with cutting-edge machine learning. Welcome to my portfolio.
+        I'm a Computer Engineering graduate from the University of Toronto, passionate about 
+        machine learning and software development. I build intelligent systems and create 
+        innovative solutions. Welcome to my portfolio.
       </motion.p>
 
       <motion.div
@@ -79,7 +80,7 @@ export function HeroText() {
           variant="secondary"
           className="transition-all duration-300 hover:scale-105 hover:shadow-[0_0_20px_rgba(139,92,246,0.4)]"
         >
-          <a href="mailto:gitansh@example.com">Contact</a>
+          <a href="mailto:gitansh.kothari@mail.utoronto.ca">Contact</a>
         </Button>
       </motion.div>
     </div>

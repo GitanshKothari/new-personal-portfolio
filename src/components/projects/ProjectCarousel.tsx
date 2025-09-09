@@ -19,34 +19,34 @@ interface Project {
 const projects: Project[] = [
   {
     id: 1,
-    title: "E-Commerce Platform",
+    title: "Drivable Area Segmentation",
     description:
-      "A full-stack e-commerce solution with payment integration, inventory management, and admin dashboard.",
+      "Real-time computer vision system for autonomous vehicles using PyTorch and CUDA acceleration. Achieved 50% performance improvement through optimized post-processing algorithms.",
     image: "/modern-ecommerce-interface.png",
-    technologies: ["React", "Node.js", "PostgreSQL", "Stripe"],
-    liveUrl: "https://example.com",
-    githubUrl: "https://github.com/example",
+    technologies: ["PyTorch", "C++", "CUDA", "OpenCV"],
+    liveUrl: "#",
+    githubUrl: "#",
     featured: true,
   },
   {
     id: 2,
-    title: "Task Management App",
+    title: "Reinforcement Learning Game AI",
     description:
-      "Collaborative project management tool with real-time updates, team collaboration, and progress tracking.",
+      "Implemented PPO, DQN, and A2C algorithms for VizDoom scenarios with automated reward shaping. Developed comprehensive evaluation framework for RL performance analysis.",
     image: "/task-management-dashboard.png",
-    technologies: ["Next.js", "TypeScript", "Prisma", "Socket.io"],
-    liveUrl: "https://example.com",
-    githubUrl: "https://github.com/example",
+    technologies: ["Python", "PyTorch", "OpenAI Gym", "Stable Baselines"],
+    liveUrl: "#",
+    githubUrl: "#",
   },
   {
     id: 3,
-    title: "Weather Analytics Dashboard",
+    title: "Stock Price Prediction System",
     description:
-      "Interactive weather data visualization with historical trends, forecasting, and location-based insights.",
+      "LSTM-based financial forecasting model with data visualization tools. Implemented time series analysis and statistical modeling for quantitative trading insights.",
     image: "/weather-analytics-dashboard-with-charts.png",
-    technologies: ["Vue.js", "D3.js", "Python", "FastAPI"],
-    liveUrl: "https://example.com",
-    githubUrl: "https://github.com/example",
+    technologies: ["Python", "TensorFlow", "NumPy", "Matplotlib"],
+    liveUrl: "#",
+    githubUrl: "#",
   },
 ];
 
@@ -116,8 +116,8 @@ export default function ProjectsDisplay() {
           Featured <span className="text-purple-400">Projects</span>
         </h2>
         <p className="text-xl text-slate-300 max-w-2xl mx-auto">
-          A showcase of my latest work, featuring modern web applications and
-          innovative solutions
+          A showcase of my machine learning and software engineering projects, 
+          featuring computer vision, reinforcement learning, and data science solutions
         </p>
       </div>
 

@@ -11,14 +11,17 @@ export default function Education() {
     {
       school: "University of Toronto",
       degree: "BASc · Computer Engineering",
-      period: "2020 – 2025",
+      period: "2020 – 2024",
       gpa: "GPA 3.81",
       minors: ["Artificial Intelligence", "Engineering Business"],
       courses: [
         "Machine Learning",
         "Neural Networks",
+        "Computer Vision",
         "Operating Systems",
         "Database Systems",
+        "Software Engineering",
+        "Data Structures & Algorithms",
       ],
       logo: "/education/uoft-logo.png",
     },

@@ -105,38 +105,34 @@ export default function BentoGrid() {
 
           <div className="space-y-3 mt-4 text-sm/relaxed text-zinc-300">
             <div className="flex items-center gap-3">
-              <span>🔄</span> Python
+              <span>🐍</span> Python
             </div>
             <div className="flex items-center gap-3">
-              <span>🎨</span> Pytorch
+              <span>🔥</span> PyTorch
             </div>
             <div className="flex items-center gap-3">
-              <span>📱</span> OpenCV
+              <span>⚛️</span> React
             </div>
             <div className="flex items-center gap-3">
-              <span>⚡</span> Numpy
+              <span>🚀</span> Next.js
+            </div>
+            <div className="flex items-center gap-3">
+              <span>☁️</span> AWS
+            </div>
+            <div className="flex items-center gap-3">
+              <span>🐳</span> Docker
             </div>
           </div>
 
-          {/* (Optional) mini gallery & services kept for sidebar rhythm */}
-          <div className="mt-8">
-            <div className={tileTitle}>📁 Projects</div>
-            <div className={tileHeading}>Works Gallery</div>
-            <div className="grid grid-cols-2 gap-2 mb-3 mt-3">
-              <div className="bg-gradient-to-br from-indigo-500/70 to-purple-600/70 rounded-lg h-12" />
-              <div className="bg-gradient-to-br from-fuchsia-500/70 to-purple-600/70 rounded-lg h-12" />
-            </div>
-            <button className="w-full rounded-lg py-2 text-sm font-medium bg-purple-600 hover:bg-purple-500 transition-colors">
-              View Works
-            </button>
-          </div>
-
+         
           <div className="mt-8">
             <div className={tileTitle}>⚙️ Services</div>
             <div className={tileHeading}>Solutions Suite</div>
             <div className="text-xs space-y-2 mt-3 text-zinc-300">
-              <div>📱 App Design</div>
-              <div>💻 No Code development</div>
+              <div>🤖 ML Model Development</div>
+              <div>💻 Full-Stack Development</div>
+              <div>☁️ Cloud Solutions</div>
+              <div>🔧 Software Engineering</div>
             </div>
             <button className="w-full rounded-lg py-2 text-xs font-medium bg-purple-600 hover:bg-purple-500 transition-colors mt-3">
               View All Services
@@ -151,7 +147,7 @@ export default function BentoGrid() {
           animate={profileInView ? "visible" : "hidden"}
           className={`col-span-2 row-span-2 ${statBox}`}
         >
-          <div className="text-4xl font-bold">05+</div>
+          <div className="text-4xl font-bold">10+</div>
           <div className="flex items-center gap-2 text-sm mt-1 text-purple-300">
             <span className="text-zinc-300">
               <FolderKanban />
@@ -164,7 +160,7 @@ export default function BentoGrid() {
           animate={profileInView ? "visible" : "hidden"}
           className={`col-span-2 row-span-2 ${statBox}`}
         >
-          <div className="text-4xl font-bold">15+</div>
+          <div className="text-4xl font-bold">20+</div>
           <div className="flex items-center gap-2 text-sm mt-1 text-purple-300">
             <span className="text-zinc-300">
               <Cpu />
@@ -177,12 +173,12 @@ export default function BentoGrid() {
           animate={profileInView ? "visible" : "hidden"}
           className={`col-span-2 row-span-2 ${statBox}`}
         >
-          <div className="text-4xl font-bold">02+</div>
+          <div className="text-4xl font-bold">03+</div>
           <div className="flex items-center gap-2 text-sm mt-1 text-purple-300">
             <span className="text-zinc-300">
               <CalendarClock />
             </span>
-            Year Expertise
+            Years Experience
           </div>
         </motion.div>
 
@@ -261,7 +257,7 @@ export default function BentoGrid() {
               </div>
               <h2 className="text-xl font-bold">Gitansh Kothari</h2>
               <p className="text-zinc-400">
-                I&apos;m a Machine Learning Engineer
+                Computer Engineering Graduate & ML Engineer
               </p>
             </div>
           </div>
@@ -283,13 +279,13 @@ export default function BentoGrid() {
               <span>
                 <Briefcase />
               </span>{" "}
-              ML Engineer
+              Software Engineering Intern
             </div>
             <div className="flex items-center gap-2">
               <span>
                 <GraduationCap />
               </span>{" "}
-              University of Toronto
+              UofT Graduate
             </div>
             <div className="flex items-center gap-2">
               <span>
@@ -342,13 +338,11 @@ export default function BentoGrid() {
           <div className={tileTitle}>👥 My Clients</div>
           <div className={tileHeading}>Satisfied Partners</div>
           <div className="flex items-center justify-between mt-4 text-zinc-400 text-sm">
-            <div>TikTok</div>
-            <div>Spotify</div>
-            <div>Facebook</div>
-            <div>YouTube</div>
-            <div>Instagram</div>
-            <div>Snapchat</div>
-            <div>Dribbble</div>
+            <div>Magna Vectrics</div>
+            <div>Mad Street Den</div>
+            <div>Altiore Capital</div>
+            <div>University of Toronto</div>
+            <div>Greenwood High</div>
           </div>
         </motion.div>
 

@@ -9,9 +9,9 @@ export const skills: Skill[] = [
     logo: "skills/python.svg",
     proficiency: 95,
     projects: [
-      "ML Pipeline Automation",
-      "Data Analysis Dashboard",
-      "AI Chatbot Backend",
+      "Computer Vision Pipeline",
+      "Reinforcement Learning Models",
+      "Stock Price Prediction",
     ],
   },
   {
@@ -21,9 +21,9 @@ export const skills: Skill[] = [
     logo: "skills/pytorch.svg",
     proficiency: 80,
     projects: [
-      "Computer Vision Pipeline",
-      "Deep Learning Research",
-      "Neural Network Training",
+      "Drivable Area Segmentation",
+      "Instance Segmentation Models",
+      "RL Game AI Development",
     ],
   },
   {
@@ -33,9 +33,9 @@ export const skills: Skill[] = [
     logo: "skills/cpp.svg",
     proficiency: 75,
     projects: [
-      "High-Performance Computing",
-      "Algorithm Optimization",
-      "ML Model Optimization",
+      "Real-time Segmentation",
+      "CUDA GPU Acceleration",
+      "Performance Optimization",
     ],
   },
   {
@@ -45,9 +45,9 @@ export const skills: Skill[] = [
     logo: "skills/aws.svg",
     proficiency: 75,
     projects: [
-      "ML Model Deployment",
-      "Data Lake Implementation",
-      "SageMaker Pipelines",
+      "Cloud ML Infrastructure",
+      "Model Deployment Pipeline",
+      "Scalable ML Solutions",
     ],
   },
   {
@@ -57,9 +57,9 @@ export const skills: Skill[] = [
     logo: "skills/postgresql.svg",
     proficiency: 80,
     projects: [
-      "Analytics Data Warehouse",
-      "ML Feature Store",
-      "Time Series Data Processing",
+      "Financial Data Analysis",
+      "Time Series Forecasting",
+      "Database Optimization",
     ],
   },
 
@@ -71,9 +71,9 @@ export const skills: Skill[] = [
     logo: "skills/javascript.svg",
     proficiency: 90,
     projects: [
-      "E-commerce Platform",
-      "Real-time Chat App",
-      "Portfolio Website",
+      "Personal Portfolio",
+      "Interactive Web Apps",
+      "Dynamic User Interfaces",
     ],
   },
   {
@@ -83,9 +83,9 @@ export const skills: Skill[] = [
     logo: "skills/typescript.svg",
     proficiency: 85,
     projects: [
-      "Enterprise CRM System",
-      "API Gateway Service",
-      "React Component Library",
+      "Type-Safe Web Apps",
+      "Component Libraries",
+      "Full-Stack Applications",
     ],
   },
   {
@@ -94,7 +94,7 @@ export const skills: Skill[] = [
     domain: "development",
     logo: "skills/react.svg",
     proficiency: 90,
-    projects: ["Social Media Platform", "Admin Dashboard", "E-learning Portal"],
+    projects: ["Interactive Dashboards", "Modern Web Apps", "Responsive UIs"],
   },
   {
     name: "Next.js",
@@ -102,7 +102,7 @@ export const skills: Skill[] = [
     domain: "development",
     logo: "skills/nextjs.svg",
     proficiency: 85,
-    projects: ["Portfolio Website", "Blog Platform", "SaaS Landing Pages"],
+    projects: ["Personal Portfolio", "Modern Web Apps", "SEO-Optimized Sites"],
   },
   {
     name: "Node.js",
@@ -111,9 +111,9 @@ export const skills: Skill[] = [
     logo: "skills/nodejs.svg",
     proficiency: 80,
     projects: [
-      "REST API Backend",
-      "Real-time WebSocket Server",
-      "Microservices Gateway",
+      "Backend Services",
+      "API Development",
+      "Server-Side Applications",
     ],
   },
   {
@@ -123,9 +123,9 @@ export const skills: Skill[] = [
     logo: "skills/git.svg",
     proficiency: 90,
     projects: [
-      "Version Control for All Projects",
-      "CI/CD Pipeline Setup",
-      "Code Review Workflows",
+      "Project Version Control",
+      "Collaborative Development",
+      "Code Management",
     ],
   },
   {
@@ -135,9 +135,9 @@ export const skills: Skill[] = [
     logo: "skills/docker.svg",
     proficiency: 80,
     projects: [
-      "Containerized Microservices",
-      "Development Environment Setup",
-      "Production Deployment",
+      "Application Containerization",
+      "Development Environments",
+      "Deployment Solutions",
     ],
   },
   {
@@ -147,9 +147,9 @@ export const skills: Skill[] = [
     logo: "skills/kubernetes.svg",
     proficiency: 70,
     projects: [
-      "Container Orchestration",
-      "Service Mesh Implementation",
-      "Auto-scaling Solutions",
+      "Container Management",
+      "Scalable Deployments",
+      "Infrastructure Automation",
     ],
   },
   {
@@ -159,9 +159,9 @@ export const skills: Skill[] = [
     logo: "skills/linux.svg",
     proficiency: 85,
     projects: [
-      "Server Administration",
-      "Shell Scripting Automation",
-      "System Performance Optimization",
+      "System Administration",
+      "Automation Scripts",
+      "Performance Tuning",
     ],
   },
   {
@@ -170,6 +170,54 @@ export const skills: Skill[] = [
     domain: "development",
     logo: "skills/redis.svg",
     proficiency: 70,
-    projects: ["Session Management", "Caching Layer", "Real-time Leaderboards"],
+    projects: ["Caching Solutions", "Session Storage", "Performance Optimization"],
+  },
+  {
+    name: "NumPy",
+    category: "frameworks",
+    domain: "ml",
+    logo: "skills/numpy.svg",
+    proficiency: 85,
+    projects: [
+      "Data Analysis",
+      "Mathematical Operations",
+      "Array Processing",
+    ],
+  },
+  {
+    name: "OpenCV",
+    category: "frameworks",
+    domain: "ml",
+    logo: "skills/opencv.svg",
+    proficiency: 80,
+    projects: [
+      "Computer Vision",
+      "Image Processing",
+      "Real-time Analysis",
+    ],
+  },
+  {
+    name: "TensorFlow",
+    category: "frameworks",
+    domain: "ml",
+    logo: "skills/tensorflow.svg",
+    proficiency: 75,
+    projects: [
+      "Deep Learning Models",
+      "Neural Networks",
+      "Model Training",
+    ],
+  },
+  {
+    name: "Matplotlib",
+    category: "tools",
+    domain: "ml",
+    logo: "skills/matplotlib.svg",
+    proficiency: 80,
+    projects: [
+      "Data Visualization",
+      "Chart Generation",
+      "Statistical Plots",
+    ],
   },
 ];

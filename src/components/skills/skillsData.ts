@@ -1,0 +1,175 @@
+import { Skill } from "./types";
+
+export const skills: Skill[] = [
+  // ML/DL Skills
+  {
+    name: "Python",
+    category: "languages",
+    domain: "ml",
+    logo: "skills/python.svg",
+    proficiency: 95,
+    projects: [
+      "ML Pipeline Automation",
+      "Data Analysis Dashboard",
+      "AI Chatbot Backend",
+    ],
+  },
+  {
+    name: "PyTorch",
+    category: "frameworks",
+    domain: "ml",
+    logo: "skills/pytorch.svg",
+    proficiency: 80,
+    projects: [
+      "Computer Vision Pipeline",
+      "Deep Learning Research",
+      "Neural Network Training",
+    ],
+  },
+  {
+    name: "C++",
+    category: "languages",
+    domain: "ml",
+    logo: "skills/cpp.svg",
+    proficiency: 75,
+    projects: [
+      "High-Performance Computing",
+      "Algorithm Optimization",
+      "ML Model Optimization",
+    ],
+  },
+  {
+    name: "AWS",
+    category: "tools",
+    domain: "ml",
+    logo: "skills/aws.svg",
+    proficiency: 75,
+    projects: [
+      "ML Model Deployment",
+      "Data Lake Implementation",
+      "SageMaker Pipelines",
+    ],
+  },
+  {
+    name: "PostgreSQL",
+    category: "databases",
+    domain: "ml",
+    logo: "skills/postgresql.svg",
+    proficiency: 80,
+    projects: [
+      "Analytics Data Warehouse",
+      "ML Feature Store",
+      "Time Series Data Processing",
+    ],
+  },
+
+  // Software Engineering/Development Skills
+  {
+    name: "JavaScript",
+    category: "languages",
+    domain: "development",
+    logo: "skills/javascript.svg",
+    proficiency: 90,
+    projects: [
+      "E-commerce Platform",
+      "Real-time Chat App",
+      "Portfolio Website",
+    ],
+  },
+  {
+    name: "TypeScript",
+    category: "languages",
+    domain: "development",
+    logo: "skills/typescript.svg",
+    proficiency: 85,
+    projects: [
+      "Enterprise CRM System",
+      "API Gateway Service",
+      "React Component Library",
+    ],
+  },
+  {
+    name: "React",
+    category: "frameworks",
+    domain: "development",
+    logo: "skills/react.svg",
+    proficiency: 90,
+    projects: ["Social Media Platform", "Admin Dashboard", "E-learning Portal"],
+  },
+  {
+    name: "Next.js",
+    category: "frameworks",
+    domain: "development",
+    logo: "skills/nextjs.svg",
+    proficiency: 85,
+    projects: ["Portfolio Website", "Blog Platform", "SaaS Landing Pages"],
+  },
+  {
+    name: "Node.js",
+    category: "frameworks",
+    domain: "development",
+    logo: "skills/nodejs.svg",
+    proficiency: 80,
+    projects: [
+      "REST API Backend",
+      "Real-time WebSocket Server",
+      "Microservices Gateway",
+    ],
+  },
+  {
+    name: "Git",
+    category: "tools",
+    domain: "development",
+    logo: "skills/git.svg",
+    proficiency: 90,
+    projects: [
+      "Version Control for All Projects",
+      "CI/CD Pipeline Setup",
+      "Code Review Workflows",
+    ],
+  },
+  {
+    name: "Docker",
+    category: "tools",
+    domain: "development",
+    logo: "skills/docker.svg",
+    proficiency: 80,
+    projects: [
+      "Containerized Microservices",
+      "Development Environment Setup",
+      "Production Deployment",
+    ],
+  },
+  {
+    name: "Kubernetes",
+    category: "tools",
+    domain: "development",
+    logo: "skills/kubernetes.svg",
+    proficiency: 70,
+    projects: [
+      "Container Orchestration",
+      "Service Mesh Implementation",
+      "Auto-scaling Solutions",
+    ],
+  },
+  {
+    name: "Linux",
+    category: "tools",
+    domain: "development",
+    logo: "skills/linux.svg",
+    proficiency: 85,
+    projects: [
+      "Server Administration",
+      "Shell Scripting Automation",
+      "System Performance Optimization",
+    ],
+  },
+  {
+    name: "Redis",
+    category: "databases",
+    domain: "development",
+    logo: "skills/redis.svg",
+    proficiency: 70,
+    projects: ["Session Management", "Caching Layer", "Real-time Leaderboards"],
+  },
+];

@@ -56,7 +56,7 @@ export default function ContactForm() {
           className: "border border-red-500",
         })
       }
-    } catch (err) {
+    } catch {
       toast.error("Network error", {
         description: "Could not connect to the server.",
         className: "border border-red-500",

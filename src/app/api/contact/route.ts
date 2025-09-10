@@ -10,7 +10,7 @@ export async function POST(req: Request) {
       return NextResponse.json({ message: "Missing required fields" }, { status: 400 })
     }
 
-    const result = await resend.emails.send({
+    await resend.emails.send({
       from: "Portfolio Contact <onboarding@resend.dev>", // you can replace with your own domain once verified
       to: process.env.EMAIL_TO!,
       subject: `New Contact Form Submission from ${firstName} ${lastName}`,

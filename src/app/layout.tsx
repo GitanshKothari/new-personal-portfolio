@@ -2,8 +2,8 @@ import type { Metadata } from "next";
 import "./globals.css";
 import "@react-pdf-viewer/core/lib/styles/index.css";
 import "@react-pdf-viewer/default-layout/lib/styles/index.css";
-
 import { Sora } from "next/font/google";
+import { Toaster } from "@/components/ui/sonner";
 
 const sora = Sora({ subsets: ["latin"], variable: "--font-sora" });
 
@@ -32,6 +32,7 @@ export default function RootLayout({
       >
         <main className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-12">
           {children}
+          <Toaster />
         </main>
       </body>
     </html>

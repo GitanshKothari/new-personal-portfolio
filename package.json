@@ -3,8 +3,8 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "scripts\\build-contentlayer.bat && next dev",
-    "build": "scripts\\build-contentlayer.bat && next build",
+    "dev": "contentlayer build && next dev",
+    "build": "contentlayer build && next build",
     "start": "next start",
     "lint": "eslint",
     "contentlayer": "contentlayer build"
@@ -55,7 +55,6 @@
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "@types/webpack": "^5.28.5",
-    "cross-env": "^10.0.0",
     "eslint": "^9",
     "eslint-config-next": "15.5.2",
     "tailwindcss": "^4",

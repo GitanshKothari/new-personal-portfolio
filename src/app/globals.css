@@ -1,5 +1,7 @@
 @import "tailwindcss";
 @import "tw-animate-css";
+/* Typography plugin removed from global to avoid style drift.
+   We'll add scoped prose styles later in the blog layout if needed. */
 
 @custom-variant dark (&:is(.dark *));
 
@@ -260,8 +262,5 @@ html, body {
 .scroller ul:hover {
   animation-play-state: paused;
 }
-
-
-
 
 

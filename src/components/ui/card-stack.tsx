@@ -1,5 +1,5 @@
 "use client"
-import { useEffect, useState } from "react"
+import { useCallback, useEffect, useState } from "react"
 import { motion } from "framer-motion"
 
 let interval: NodeJS.Timeout
@@ -25,14 +25,7 @@ export const CardStack = ({
   const CARD_OFFSET = offset || 12
   const SCALE_FACTOR = scaleFactor || 0.06
   const [cards, setCards] = useState<Card[]>(items)
-
-  useEffect(() => {
-    if (!autoFlip) return
-    startFlipping()
-    return () => clearInterval(interval)
-  }, [autoFlip])
-
-  const startFlipping = () => {
+  const startFlipping = useCallback(() => {
     interval = setInterval(() => {
       setCards((prevCards: Card[]) => {
         const newArray = [...prevCards]
@@ -40,7 +33,15 @@ export const CardStack = ({
         return newArray
       })
     }, intervalMs)
-  }
+  }, [intervalMs])
+  
+  useEffect(() => {
+    if (!autoFlip) return
+    startFlipping()
+    return () => clearInterval(interval)
+  }, [autoFlip, startFlipping])
+
+  
 
   return (
     <div className="relative h-[32rem] w-full max-w-3xl mx-auto">

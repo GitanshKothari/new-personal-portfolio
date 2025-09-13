@@ -241,3 +241,27 @@ html, body {
   animation: wave 2.5s infinite;
   transform-origin: 70% 70%; /* pivot around bottom of hand */
 }
+
+@keyframes scroll {
+  0% {
+    transform: translateX(0);
+  }
+  100% {
+    /* shift by exactly one set (50% of total width).
+       gap-6 = 1.5rem → subtract half (0.75rem) */
+    transform: translateX(calc(-50% - 0.75rem));
+  }
+}
+
+.animate-scroll {
+  animation: scroll var(--animation-duration, 40s) var(--animation-direction, forwards) linear infinite;
+}
+
+.scroller ul:hover {
+  animation-play-state: paused;
+}
+
+
+
+
+

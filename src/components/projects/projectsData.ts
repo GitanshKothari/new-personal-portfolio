@@ -11,94 +11,61 @@ export interface Project {
 }
 
 export const projects: Project[] = [
-  {
-    id: 1,
-    title: "Drivable Area Segmentation",
-    description: "Real-time computer vision system for autonomous vehicles using PyTorch and CUDA acceleration. Achieved 50% performance improvement through optimized post-processing algorithms.",
-    image: "/modern-ecommerce-interface.png",
-    technologies: ["PyTorch", "C++", "CUDA", "OpenCV", "Python"],
-    liveUrl: "#",
-    githubUrl: "https://github.com/yourusername/drivable-segmentation",
-    featured: true,
-    category: "Computer Vision"
-  },
-  {
-    id: 2,
-    title: "Reinforcement Learning Game AI",
-    description: "Implemented PPO, DQN, and A2C algorithms for VizDoom scenarios with automated reward shaping. Developed comprehensive evaluation framework for RL performance analysis.",
-    image: "/task-management-dashboard.png",
-    technologies: ["Python", "PyTorch", "OpenAI Gym", "Stable Baselines", "NumPy"],
-    liveUrl: "#",
-    githubUrl: "https://github.com/yourusername/rl-game-ai",
-    featured: true,
-    category: "Reinforcement Learning"
-  },
-  {
-    id: 3,
-    title: "Stock Price Prediction System",
-    description: "LSTM-based financial forecasting model with data visualization tools. Implemented time series analysis and statistical modeling for quantitative trading insights.",
-    image: "/weather-analytics-dashboard-with-charts.png",
-    technologies: ["Python", "TensorFlow", "NumPy", "Matplotlib", "Pandas"],
-    liveUrl: "#",
-    githubUrl: "https://github.com/yourusername/stock-prediction",
-    featured: true,
-    category: "Data Science"
-  },
-  {
-    id: 4,
-    title: "E-commerce Platform",
-    description: "Full-stack e-commerce solution with React, Node.js, and PostgreSQL. Features include user authentication, payment processing, and admin dashboard.",
-    image: "/modern-ecommerce-interface.png",
-    technologies: ["React", "Node.js", "PostgreSQL", "TypeScript", "Stripe"],
-    liveUrl: "https://your-ecommerce-demo.com",
-    githubUrl: "https://github.com/yourusername/ecommerce-platform",
-    featured: false,
-    category: "Web Development"
-  },
-  {
-    id: 5,
-    title: "Task Management Dashboard",
-    description: "Collaborative project management tool with real-time updates, drag-and-drop functionality, and team collaboration features.",
-    image: "/task-management-dashboard.png",
-    technologies: ["Next.js", "Prisma", "PostgreSQL", "Tailwind CSS", "Socket.io"],
-    liveUrl: "https://your-task-demo.com",
-    githubUrl: "https://github.com/yourusername/task-dashboard",
-    featured: false,
-    category: "Web Development"
-  },
-  {
-    id: 6,
-    title: "Weather Analytics Dashboard",
-    description: "Interactive data visualization dashboard for weather patterns and climate analysis with real-time data processing and forecasting.",
-    image: "/weather-analytics-dashboard-with-charts.png",
-    technologies: ["D3.js", "Python", "Flask", "MongoDB", "Chart.js"],
-    liveUrl: "https://your-weather-demo.com",
-    githubUrl: "https://github.com/yourusername/weather-dashboard",
-    featured: false,
-    category: "Data Visualization"
-  },
-  {
-    id: 7,
-    title: "Mobile Banking App",
-    description: "Secure mobile banking application with biometric authentication, transaction management, and real-time notifications.",
-    image: "/modern-ecommerce-interface.png",
-    technologies: ["React Native", "Node.js", "MongoDB", "JWT", "Firebase"],
-    liveUrl: "#",
-    githubUrl: "https://github.com/yourusername/mobile-banking",
-    featured: false,
-    category: "Mobile Development"
-  },
-  {
-    id: 8,
-    title: "Machine Learning Pipeline",
-    description: "Automated ML pipeline for data preprocessing, model training, and deployment with MLOps best practices and monitoring.",
-    image: "/task-management-dashboard.png",
-    technologies: ["Python", "Docker", "Kubernetes", "MLflow", "AWS"],
-    liveUrl: "#",
-    githubUrl: "https://github.com/yourusername/ml-pipeline",
-    featured: false,
-    category: "Machine Learning"
-  }
+    {
+      id: 1,
+      title: "Scholarspace AI",
+      description: "Scholarspace AI is a personalized learning platform designed to bridge the gap between teachers and students by combining classroom management with AI-driven coding assistance. The platform allows teachers to seamlessly create classrooms, assign coding problems, and track student progress, while students can write and submit code directly through an integrated editor. The highlight of the project is an AI-powered assistant that provides real-time feedback and guidance to students without revealing solutions, encouraging independent problem-solving. Built with TypeScript, React, and PostgreSQL, the system emphasizes scalability and user-friendly workflows, making it an effective digital companion for both teaching and learning.",
+      image: "/projects/scholarspaceai.png",
+      technologies: ["TypeScript", "React", "PostgreSQL"],
+      liveUrl: "#",
+      githubUrl: "https://github.com/hitarthdesai/scholar-space-ai",
+      featured: true,
+      category: "Full Stack / AI"
+    },
+    {
+      id: 2,
+      title: "Object Detection and Segmentation",
+      description: "This project focuses on enhancing the YOLOv5 model to perform multi-task learning by combining object detection and semantic segmentation within a single forward pass. Rather than maintaining separate models for each task, I re-architected the training pipeline, modifying the model architecture, data loaders, loss functions, and inference scripts to support both tasks simultaneously. The system was optimized to maintain detection accuracy while adding the ability to segment drivable areas, reducing computational overhead and improving inference efficiency. Built with PyTorch, NumPy, and OpenCV, the project demonstrates advanced model customization and highlights my ability to improve efficiency in real-time computer vision tasks relevant to autonomous driving.",
+      image: "/projects/yolo-seg.jpg",
+      technologies: ["Python", "PyTorch", "OpenCV", "NumPy"],
+      liveUrl: "#",
+      githubUrl: "https://github.com/GitanshKothari/yolov5_segmentation",
+      featured: true,
+      category: "Computer Vision"
+    },
+    {
+      id: 3,
+      title: "Optical Character Recognition",
+      description: "The Optical Character Recognition project involved building a robust Convolutional Recurrent Neural Network (CRNN) capable of extracting text from natural images. The system combined convolutional layers for feature extraction with recurrent layers to model sequential dependencies, achieving over 80% accuracy in text recognition. To ensure reliability, I implemented a comprehensive training pipeline including preprocessing techniques such as image normalization and augmentation, as well as a custom loss function tailored for sequence prediction. The project showcases my ability to design end-to-end deep learning solutions, from data handling to architecture design, with real-world applications in digitizing text from images and scanned documents.",
+      image: "/projects/ocr.png",
+      technologies: ["Python", "PyTorch", "OpenCV"],
+      liveUrl: "#",
+      githubUrl: "https://github.com/GitanshKothari/OCR-using-CRNN",
+      featured: false,
+      category: "Computer Vision / NLP"
+    },
+    {
+      id: 4,
+      title: "UniMaps – GIS Application",
+      description: "UniMaps is a C++-based geographic information system application built to provide users with an intuitive navigation experience across university campuses. The application includes features such as location search, bookmarking, and route planning, with the core pathfinding functionality powered by the A* algorithm. To optimize performance, a Trie data structure was integrated for rapid search operations, enabling efficient retrieval of location data even in large datasets. The user interface, developed using Glade, offers an accessible way to interact with the system, blending efficiency with usability. This project highlights my ability to design systems-level applications with an emphasis on algorithms and data structures.",
+      image: "/projects/gis.png",
+      technologies: ["C++", "C++ STL", "Glade"],
+      liveUrl: "#",
+      githubUrl: "#",
+      featured: false,
+      category: "Systems / Mapping"
+    },
+    {
+      id: 5,
+      title: "Reinforcement Learning in ViZDoom",
+      description: "In this project, I implemented reinforcement learning agents within the ViZDoom environment, a 3D first-person shooter designed for AI research. By experimenting with algorithms such as PPO, DQN, and A2C, I trained agents to detect enemies and navigate complex arenas in real time. The neural networks were designed to process visual inputs and make strategic decisions that improved responsiveness and survivability within the game environment. To further enhance learning efficiency, I automated reward shaping and conducted hyperparameter tuning, which significantly improved performance across different scenarios. The project demonstrates my practical understanding of reinforcement learning and my ability to apply it to dynamic, real-time environments where perception and decision-making are tightly coupled.",
+      image: "/projects/vizdoom.png",
+      technologies: ["Python", "PyTorch", "OpenAI Gym", "Stable Baselines"],
+      liveUrl: "#",
+      githubUrl: "#",
+      featured: true,
+      category: "Reinforcement Learning"
+    }
 ];
 
 export const featuredProjects = projects.filter(project => project.featured);

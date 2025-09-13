@@ -17,7 +17,7 @@ export function ProjectCard({ project, index, onClick }: ProjectCardProps) {
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.5, delay: index * 0.1 }}
-      className="group relative bg-gray-900/60 border border-gray-700/50 rounded-xl overflow-hidden hover:border-purple-500/50 transition-all duration-300 hover:shadow-2xl hover:shadow-purple-500/20 cursor-pointer project-card flex flex-col"
+      className="group relative bg-gray-900 border border-gray-700/50 rounded-xl overflow-hidden hover:border-purple-500/50 transition-all duration-300 hover:shadow-2xl hover:shadow-purple-500/20 cursor-pointer project-card flex flex-col"
       onClick={onClick}
     >
       {/* Image Container */}

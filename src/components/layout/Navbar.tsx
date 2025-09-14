@@ -10,6 +10,7 @@ import {
   User,
   Wrench,
   FileText as FileTextIcon,
+  PenTool,
 } from "lucide-react";
 
 const menuItems = [
@@ -69,6 +70,14 @@ const menuItems = [
       "radial-gradient(circle, rgba(99,102,241,0.2) 0%, rgba(79,70,229,0.1) 50%, rgba(67,56,202,0) 100%)",
     iconColor: "text-indigo-400",
   },
+  {
+    icon: <PenTool className="h-5 w-5" />,
+    label: "Blog",
+    href: "/blog",
+    gradient:
+      "radial-gradient(circle, rgba(168,85,247,0.2) 0%, rgba(147,51,234,0.1) 50%, rgba(126,34,206,0) 100%)",
+    iconColor: "text-violet-400",
+  },
 ];
 
 const itemVariants: Variants = {
@@ -111,16 +120,18 @@ const sharedTransition: Transition = {
 export function Navbar() {
   return (
     <motion.nav
-      className="fixed top-4 left-1/2 -translate-x-1/2 z-50 px-4 py-2 rounded-2xl bg-gradient-to-b from-zinc-950/80 to-zinc-900/40 backdrop-blur-xl border border-zinc-800/40 shadow-lg"
+      className="fixed top-0 left-0 right-0 z-50 bg-gradient-to-b from-zinc-950/80 to-zinc-900/40 backdrop-blur-xl border-b border-zinc-800/40 shadow-lg"
       initial="initial"
       whileHover="hover"
     >
       <motion.div
-        className="absolute -inset-2 bg-gradient-radial from-purple-400/10 via-indigo-400/10 to-transparent rounded-3xl z-0 pointer-events-none"
+        className="absolute -inset-2 bg-gradient-radial from-purple-400/10 via-indigo-400/10 to-transparent z-0 pointer-events-none"
         variants={navGlowVariants}
       />
 
-      <ul className="flex items-center gap-2 relative z-10">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="flex items-center justify-center h-16">
+          <ul className="flex items-center gap-2 relative z-10">
         {menuItems.map((item) => (
           <motion.li key={item.label} className="relative">
             <motion.div
@@ -180,7 +191,9 @@ export function Navbar() {
             </motion.div>
           </motion.li>
         ))}
-      </ul>
+          </ul>
+        </div>
+      </div>
     </motion.nav>
   );
 }

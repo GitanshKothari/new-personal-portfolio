@@ -10,30 +10,30 @@ type Props = {
 export function BlogCard({ post }: Props) {
   return (
     <motion.article
-      whileHover={{ y: -4, scale: 1.01 }}
+      whileHover={{ y: -4, scale: 1.02 }}
       transition={{ type: "spring", stiffness: 300, damping: 25 }}
-      className="group rounded-xl border border-border/60 bg-card/60 p-5 hover:border-primary/40 hover:shadow-lg hover:shadow-primary/10"
+      className="group bg-black/20 backdrop-blur-xl rounded-2xl p-6 border border-white/10 hover:border-white/20 hover:bg-black/30 transition-all duration-300 shadow-lg hover:shadow-xl"
     >
       <Link href={post.url} className="block">
-        <h3 className="text-lg font-semibold tracking-tight group-hover:text-primary">
+        <h3 className="text-xl font-semibold text-white group-hover:text-purple-300 transition-colors mb-3 hover:shadow-lg">
           {post.title}
         </h3>
-        <p className="mt-1 text-xs text-muted-foreground">
+        <p className="text-white/60 text-sm mb-3">
           {new Date(post.date).toLocaleDateString(undefined, {
             year: "numeric",
             month: "short",
             day: "2-digit",
           })}
         </p>
-        <p className="mt-2 line-clamp-3 text-sm text-muted-foreground">
+        <p className="text-white/70 text-sm leading-relaxed mb-4 line-clamp-3">
           {post.description}
         </p>
         {post.tags?.length ? (
-          <div className="mt-3 flex flex-wrap gap-2">
+          <div className="flex flex-wrap gap-2">
             {post.tags.map((t) => (
               <span
                 key={t}
-                className="rounded-full bg-secondary px-2.5 py-0.5 text-xs text-secondary-foreground"
+                className="px-3 py-1 bg-white/10 text-white/80 text-xs rounded-full hover:bg-purple-500/20 transition-colors"
               >
                 {t}
               </span>

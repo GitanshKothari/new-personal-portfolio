@@ -19,7 +19,7 @@
         "name": "next"
       }
     ],
-    "types": ["contentlayer/generated"],
+    "types": ["node"],
     "paths": {
       "@/*": ["./src/*"],
       "contentlayer/generated": ["./.contentlayer/generated"]

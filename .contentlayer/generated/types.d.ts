@@ -21,6 +21,7 @@ export type Post = {
   description: string
   /** Tags for the post */
   tags?: string[] | undefined
+  image?: string | undefined
   /** MDX file body */
   body: MDX
   url: string

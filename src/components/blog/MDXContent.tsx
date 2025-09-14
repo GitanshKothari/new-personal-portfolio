@@ -1,6 +1,6 @@
 "use client";
 
-import React from "react";
+import { useMDXComponent } from "next-contentlayer/hooks";
 import { mdxComponents } from "./MDXComponents";
 
 interface MDXContentProps {
@@ -8,11 +8,6 @@ interface MDXContentProps {
 }
 
 export default function MDXContent({ code }: MDXContentProps) {
-  // Create a function from the compiled MDX code
-  const compiledCode = new Function('React', code)(React);
-  
-  // The compiled code returns an object with a default export
-  const MDXComponent = compiledCode.default || compiledCode;
-  
-  return <MDXComponent components={mdxComponents} />;
+  const Component = useMDXComponent(code);
+  return <Component components={mdxComponents} />;
 }

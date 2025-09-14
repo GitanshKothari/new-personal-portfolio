@@ -101,7 +101,7 @@
 /* DARK (“noir”) */
 .dark {
   /* Near-black background ~ #0b0b12 */
-  --background: oklch(0.14 0.01 285);
+  --background: #050506; /* or oklch(0.14 0 0) for pure neutral black */
   --foreground: oklch(0.985 0 0);
 
   /* Cards slightly lifted from bg */
@@ -190,19 +190,26 @@ html {
 }
 
 .bg-purple-noir {
-  background-color: oklch(0.14 0.01 285);
+  /* Base: essentially black */
+  background-color: #050506;
+
+  /* Extremely subtle purple glows in far corners only */
   background-image: radial-gradient(
-      1200px 600px at 80% -100px,
-      color-mix(in oklch, oklch(0.67 0.24 295) 30%, transparent),
-      transparent 60%
+      700px 350px at 90% -150px,
+      color-mix(in oklch, oklch(0.65 0.22 295) 2%, transparent),
+      transparent 90%
     ),
     radial-gradient(
-      1000px 500px at -20% 0%,
-      color-mix(in oklch, oklch(0.6 0.2 305) 22%, transparent),
-      transparent 60%
+      600px 300px at 120% 20%,
+      color-mix(in oklch, oklch(0.6 0.18 305) 1.5%, transparent),
+      transparent 95%
     );
+
   background-attachment: fixed;
 }
+
+
+
 
 body {
   font-family: var(--font-sora), system-ui, sans-serif;
@@ -263,4 +270,6 @@ html, body {
   animation-play-state: paused;
 }
 
-
+.prose{
+  @import "prism-themes/themes/prism-vsc-dark-plus.css";
+}

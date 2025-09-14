@@ -1,6 +1,7 @@
 "use client";
 
 import { motion } from "framer-motion";
+import Image from "next/image";
 import { GraduationCap } from "lucide-react";
 import { SectionHeader } from "@/components/ui/section-header";
 
@@ -65,9 +66,11 @@ export default function Education() {
                 <div>
                   <h3 className="text-lg md:text-xl font-semibold text-white flex items-center gap-2">
                     {edu.logo && (
-                      <img
+                      <Image
                         src={edu.logo}
                         alt={`${edu.school} logo`}
+                        width={24}
+                        height={24}
                         className="w-6 h-6 object-contain"
                       />
                     )}

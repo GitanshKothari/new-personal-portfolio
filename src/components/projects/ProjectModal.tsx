@@ -2,6 +2,7 @@
 
 import { motion, AnimatePresence } from "framer-motion";
 import { X, ExternalLink, Github, Calendar, Tag } from "lucide-react";
+import Image from "next/image";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Project } from "./projectsData";
@@ -44,11 +45,13 @@ export function ProjectModal({ project, isOpen, onClose }: ProjectModalProps) {
             {/* Content */}
             <div className="flex flex-col lg:flex-row h-full">
               {/* Image Section */}
-              <div className="lg:w-1/2 h-64 lg:h-auto">
-                <img
+              <div className="lg:w-1/2 h-64 lg:h-auto relative">
+                <Image
                   src={project.image}
                   alt={project.title}
-                  className="w-full h-full object-cover"
+                  fill
+                  sizes="(min-width: 1024px) 50vw, 100vw"
+                  className="object-cover"
                 />
               </div>
 

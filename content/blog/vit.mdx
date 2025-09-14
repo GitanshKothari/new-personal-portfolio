@@ -1,0 +1,29 @@
+---
+title: "Vision Transformers Explained"
+date: "2025-09-20"
+description: "A breakdown of how ViTs process images as sequences."
+tags: ["Transformers", "ViT", "Deep Learning"]
+image: "/blog/vit/hero.png"
+---
+
+Vision Transformers (ViTs) treat an image as a sequence of patches and apply
+the Transformer encoder architecture.
+
+## Patch embedding
+
+Split an image into fixed-size patches and linearly project each to an embedding.
+
+```python
+import torch
+
+def patchify(img, patch_size=16):
+    b, c, h, w = img.shape
+    ph = pw = patch_size
+    img = img.view(b, c, h // ph, ph, w // pw, pw)
+    return img.permute(0, 2, 4, 3, 5, 1).contiguous().view(b, -1, ph*pw*c)
+```
+
+## Self-attention
+
+Each token attends to all others, capturing global context in a single layer.
+

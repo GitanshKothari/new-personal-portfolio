@@ -15,7 +15,7 @@ export function HeroText() {
       <motion.div
         animate={{ y: [0, 20, 0], scale: [1, 1.1, 1] }}
         transition={{ duration: 10, repeat: Infinity, ease: "easeInOut" }}
-        className="absolute -top-32 -left-20 w-72 h-72 bg-purple-500/20 blur-[120px] rounded-full -z-10"
+        className="absolute -top-32 -left-20 w-72 h-72 blur-[120px] rounded-full -z-10"
       />
       <motion.div
         animate={{ y: [0, -20, 0], scale: [1, 1.05, 1] }}

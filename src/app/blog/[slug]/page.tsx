@@ -62,10 +62,10 @@ export default async function BlogPostPage({ params }: Params) {
           <p className="font-medium text-white">Gitansh Kothari</p>
           <p>
             {new Date(post.date).toLocaleDateString()}
-            {(post as any)?.readingTime && (
+            {post.readingTime && (
               <>
                 <span className="mx-2">•</span>
-                {(post as any).readingTime}
+                {post.readingTime}
               </>
             )}
           </p>

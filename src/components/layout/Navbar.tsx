@@ -17,7 +17,7 @@ const menuItems = [
   {
     icon: <Home className="h-5 w-5" />,
     label: "Home",
-    href: "#home",
+    href: "/",
     gradient:
       "radial-gradient(circle, rgba(139,92,246,0.2) 0%, rgba(109,40,217,0.1) 50%, rgba(67,56,202,0) 100%)",
     iconColor: "text-purple-400",
@@ -25,7 +25,7 @@ const menuItems = [
   {
     icon: <User className="h-5 w-5" />,
     label: "About",
-    href: "#about",
+    href: "/#about",
     gradient:
       "radial-gradient(circle, rgba(239,68,68,0.2) 0%, rgba(185,28,28,0.1) 50%, rgba(127,29,29,0) 100%)",
     iconColor: "text-red-400",
@@ -33,7 +33,7 @@ const menuItems = [
   {
     icon: <BookOpen className="h-5 w-5" />,
     label: "Education",
-    href: "#education",
+    href: "/#education",
     gradient:
       "radial-gradient(circle, rgba(59,130,246,0.2) 0%, rgba(37,99,235,0.1) 50%, rgba(29,78,216,0) 100%)",
     iconColor: "text-blue-400",
@@ -41,7 +41,7 @@ const menuItems = [
   {
     icon: <FileText className="h-5 w-5" />,
     label: "Experience",
-    href: "#experience",
+    href: "/#experience",
     gradient:
       "radial-gradient(circle, rgba(34,197,94,0.2) 0%, rgba(21,128,61,0.1) 50%, rgba(22,163,74,0) 100%)",
     iconColor: "text-green-400",
@@ -49,7 +49,7 @@ const menuItems = [
   {
     icon: <FolderKanban className="h-5 w-5" />,
     label: "Projects",
-    href: "#projects",
+    href: "/#projects",
     gradient:
       "radial-gradient(circle, rgba(236,72,153,0.2) 0%, rgba(190,24,93,0.1) 50%, rgba(136,19,55,0) 100%)",
     iconColor: "text-pink-400",
@@ -57,7 +57,7 @@ const menuItems = [
   {
     icon: <Wrench className="h-5 w-5" />,
     label: "Skills",
-    href: "#skills",
+    href: "/#skills",
     gradient:
       "radial-gradient(circle, rgba(245,158,11,0.2) 0%, rgba(217,119,6,0.1) 50%, rgba(180,83,9,0) 100%)",
     iconColor: "text-amber-400",

@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { Button } from "@/components/ui/button";
 import { Download, ExternalLink } from "lucide-react";
-import { ResumeViewer } from "@/components/resume/ResumeViewer";
+import { ResumeClient } from "@/app/resume/ResumeClient";
 
 export const metadata: Metadata = {
   title: "Resume — Gitansh Kothari",
@@ -13,7 +13,7 @@ const RESUME_PATH = "/resume/Gitansh_Kothari_Resume.pdf";
 
 export default function ResumePage() {
   return (
-    <section className="mx-auto max-w-5xl space-y-8">
+    <section className="mx-auto max-w-5xl space-y-8 pt-20">
       <header className="space-y-2">
         <h1 className="text-3xl font-semibold tracking-tight">Resume</h1>
         <p className="text-sm text-muted-foreground">
@@ -35,7 +35,7 @@ export default function ResumePage() {
         </div>
       </header>
 
-      <ResumeViewer fileUrl={RESUME_PATH} />
+      <ResumeClient fileUrl={RESUME_PATH} />
 
       <footer className="pt-4 text-xs text-muted-foreground">
         Tip: Use the viewer toolbar to search, zoom, or print.

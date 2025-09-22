@@ -1,6 +1,7 @@
 import type { NextConfig } from "next";
 import type { Configuration } from "webpack";
 import createMDX from "@next/mdx";
+import { withContentlayer } from "next-contentlayer";
 
 const withMDX = createMDX({
   // Add markdown plugins here, as desired
@@ -17,12 +18,6 @@ const nextConfig: NextConfig = {
     };
     return config;
   },
-};
-
-export default withMDX(nextConfig);
-
-// next.config.js
-module.exports = {
   images: {
     remotePatterns: [
       {
@@ -32,3 +27,5 @@ module.exports = {
     ],
   },
 };
+
+export default withContentlayer(withMDX(nextConfig));

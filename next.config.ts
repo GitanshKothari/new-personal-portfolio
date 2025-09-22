@@ -20,3 +20,15 @@ const nextConfig: NextConfig = {
 };
 
 export default withMDX(nextConfig);
+
+// next.config.js
+module.exports = {
+  images: {
+    remotePatterns: [
+      {
+        protocol: "https",
+        hostname: "tse4.mm.bing.net",
+      },
+    ],
+  },
+};

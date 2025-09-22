@@ -1,0 +1,211 @@
+---
+title: "LeNet – The First CNN That Started It All"
+date: "2025-09-14"
+description: "Exploring LeNet, one of the earliest convolutional neural networks that laid the foundation for modern deep learning."
+tags: ["CNN", "LeNet", "Deep Learning History"]
+image: "/blog/lenet/hero.png"
+---
+
+## Context & Motivation
+
+When I think about where to start with convolutional neural networks (CNNs), 
+it feels natural to begin with LeNet. This was the first real CNN that worked, 
+built by Yann LeCun back in the 1990s and introduced in the paper *Gradient-Based Learning Applied to Document Recognition*. And honestly, it’s also the first model 
+I ever saw in a class when we switched from fully connected networks to image 
+tasks. So it holds a bit of a “first step” feeling for me.
+
+At that time, people were trying to get computers to recognize handwritten 
+digits, like the numbers on checks or zip codes on letters. The common approach 
+was to design features by hand. These features included things like edge detectors, strokes, or 
+corners. But handwriting is messy. People slant their digits, change the size, 
+write quickly or slowly. Hand-crafted features just couldn’t handle all that 
+variation.
+
+LeNet’s big idea was: what if the network *learns* those features directly from 
+pixels? No manual feature engineering. Just raw 28×28 images of digits from the 
+MNIST dataset, and let the network figure out edges, curves, and shapes on its 
+own. That feels obvious to us now, but back then it was a huge shift.
+
+What surprised me when I first revisited this paper is how much of today’s CNN 
+structure was already there: convolution layers to detect patterns, pooling to 
+downsample, and fully connected layers at the end to do the classification. 
+Even though the network looks tiny compared to models we use now, the blueprint 
+was basically the same.
+
+So in this post, I want to walk through LeNet step by step. I’ll break down 
+the architecture layer by layer, explain why they made the choices they did, 
+and also show some PyTorch code for it. My hope is that if you’ve never seen a 
+CNN before, this will feel like a clear and approachable first example.
+
+
+
+## Architecture Breakdown
+
+Here’s where LeNet gets interesting. It might look small, but
+it’s built from the same building blocks that modern CNNs
+still use today. Think of it as the blueprint.
+
+<figure>
+  <img src="/blog/lenet/architecture-overview.webp" alt="LeNet architecture overview" />
+  <figcaption>Diagram of LeNet-5 showing convolutional and pooling layers</figcaption>
+</figure>
+
+### Input  
+The network takes in a 32×32 grayscale image. MNIST digits
+are 28×28, so the authors padded them to 32×32. Nothing
+fancy here, just making the math easier.
+
+### First Convolution (C1)  
+The first layer applies 6 filters of size 5×5. Each filter is
+like a stencil sliding over the image, picking out edges or
+curves. You end up with 6 new images (feature maps) that
+highlight different patterns.
+
+### First Pooling (S2)  
+Then comes average pooling. Imagine squinting at the image
+so small details blur out, but the big shapes stay visible.
+This reduces the size from 28×28 to 14×14.
+
+### Second Convolution (C3)  
+Now 16 new filters scan these smaller maps. This time the
+filters look for more complex shapes, like combinations of
+edges forming corners or loops.
+
+### Second Pooling (S4)  
+Another average pooling step, shrinking things down again.
+At this point the network is no longer staring at pixels, it’s
+staring at patterns of strokes and shapes.
+
+### Third Convolution (C5)  
+This layer uses 120 filters that cover the entire 5×5 maps.
+Each filter basically compresses a whole map into one
+number. Think of it as summarizing everything it’s seen so
+far into a set of key signals.
+
+### Fully Connected (F6) and Output  
+Finally, the model uses two fully connected layers. The
+first has 84 neurons, the second has 10 outputs (digits 0–9).
+This part is like a traditional neural network classifier,
+taking all the learned features and turning them into a
+prediction.
+
+---
+Two things stand out:  
+1. Pooling was average pooling, not max pooling. Max pooling came later and is now more common.  
+2. Activations were tanh, not ReLU. ReLU was introduced much later with AlexNet in 2012.  
+
+Even though LeNet is tiny compared to modern CNNs, the
+pattern is the same: convolution → pooling → convolution →
+pooling → fully connected → output. Once you understand
+this, bigger models like AlexNet and VGG make a lot more
+sense — they just add depth and scale.
+
+
+## Implementation Notes
+
+To get a better feel for LeNet, I coded it out in PyTorch. Here’s a simplified version:
+
+```python
+import torch
+import torch.nn as nn
+import torch.nn.functional as F
+
+class LeNet5(nn.Module):
+    def __init__(self):
+        super(LeNet5, self).__init__()
+        self.conv1 = nn.Conv2d(1, 6, kernel_size=5)     # C1
+        self.pool1 = nn.AvgPool2d(2, stride=2)          # S2
+        self.conv2 = nn.Conv2d(6, 16, kernel_size=5)    # C3
+        self.pool2 = nn.AvgPool2d(2, stride=2)          # S4
+        self.conv3 = nn.Conv2d(16, 120, kernel_size=5)  # C5
+        self.fc1   = nn.Linear(120, 84)                 # F6
+        self.fc2   = nn.Linear(84, 10)                  # Output
+
+    def forward(self, x):
+        x = torch.tanh(self.conv1(x))
+        x = self.pool1(x)
+        x = torch.tanh(self.conv2(x))
+        x = self.pool2(x)
+        x = torch.tanh(self.conv3(x))
+        x = x.view(-1, 120)
+        x = torch.tanh(self.fc1(x))
+        x = self.fc2(x)
+        return x
+```
+
+
+I used tanh activations and average pooling to stay close to
+the original design. Out of curiosity, I tried swapping them
+for ReLU and max pooling, and the model performed better.
+That small test shows how later innovations
+didn’t reinvent CNNs, they just refined the same blueprint.
+
+Training this model on MNIST was fast and straightforward.
+On my machine it takes seconds, but it’s crazy to think that
+back in the 90s this was pushing the limits of compute.
+What feels like a toy model today was once cutting-edge.
+
+## Why the Design Choices Matter
+
+One of the things I like about LeNet is that you can
+actually see the reasoning behind each design choice.
+
+**Convolutions over fully connected layers**  
+If you tried to use a fully connected layer on a 32×32
+image, you’d end up with thousands of weights right
+away. Convolutions solve that by reusing the same small
+filter everywhere, which keeps parameters manageable
+and also makes the network look for patterns across
+the whole image.
+
+**Pooling layers**  
+Pooling is like zooming out. You lose a little detail but
+gain robustness. A digit shifted by a pixel or two still
+looks like the same digit after pooling, which helps with
+invariance.
+
+**Tanh activations**  
+Today, we almost always use ReLU, but back then tanh
+was the standard. It squashes values into the range
+[-1, 1], which made optimization easier with the tools
+they had at the time. It’s slower than ReLU, but it got
+the job done.
+
+**Average pooling vs max pooling**  
+LeNet used average pooling, which smooths things out.
+Nowadays max pooling is more common since it keeps
+the strongest signal. My guess is that average pooling
+felt more stable in the 90s, and computation was a big
+factor too.
+
+---
+
+Seeing these choices in context makes me realize that
+nothing about modern CNNs is “magical.” The ideas were
+already here — we just changed the details as hardware
+and training methods improved.
+
+
+## Reflections
+
+## Reflections and What Came Next
+
+LeNet might look small today, but it showed me how
+powerful CNNs really are. Convolutions to find edges,
+pooling to simplify, and fully connected layers to make
+the final call — that recipe is still everywhere.
+
+What I found surprising is how many choices were
+different from what we’d use now. Tanh instead of ReLU,
+average pooling instead of max pooling. When I swapped
+those in my own code, training felt faster and accuracy
+improved. It made me realize later models weren’t doing
+something entirely new, just refining LeNet’s blueprint.
+
+And that blueprint carried forward. AlexNet scaled it up
+with GPUs and ReLU. VGG went deeper. GoogLeNet made
+it efficient. ResNet added skip connections. If you squint,
+they all still look like LeNet. That’s why this model feels
+like the “hello world” of CNNs — simple, but it gives you
+the mental map to understand everything that came after.
+

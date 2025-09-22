@@ -1,0 +1,137 @@
+---
+title: "AlexNet – The Model That Sparked the Deep Learning Boom"
+date: "2025-09-14"
+description: "A look into AlexNet, the breakthrough CNN that won ImageNet 2012 and 
+          changed the trajectory of deep learning."
+tags: ["CNN", "AlexNet", "Deep Learning History"]
+image: "/blog/alexnet/hero.png"
+---
+
+## Context & Motivation
+
+If LeNet was the blueprint, AlexNet was the explosion. In 2012, Alex Krizhevsky,
+Ilya Sutskever, and Geoffrey Hinton entered the ImageNet competition with a deep
+CNN. The result shocked everyone: their model crushed the competition with a
+top-5 error of 15.3% compared to the next best at 26.2%. That’s not just a win,
+that’s a landslide.
+
+This single result is what most people point to as the moment that started the
+modern deep learning boom. For me, it was also the first "big" CNN I read about
+after LeNet. It showed me that the same ideas could scale up if you had enough
+data and enough compute.
+
+Back then, GPUs weren’t commonly used for neural networks. AlexNet was the
+first to really lean on GPUs for training, and that’s what made it possible to
+train a network this large.
+
+
+## Model Breakdown
+
+<figure>
+  <img src="/blog/alexnet/architecture-overview.webp" alt="AlexNet architecture overview" />
+  <figcaption>Diagram of the AlexNet architecture</figcaption>
+</figure>
+
+AlexNet is much bigger than LeNet, but it’s not complicated once you see the
+pattern. Here’s a layer-by-layer look:
+
+- **Input:** 224×224 RGB image from ImageNet (1000 classes).  
+- **Conv1:** 96 filters of size 11×11, stride 4 → 55×55 feature maps.  
+- **Max Pooling:** 3×3, stride 2.  
+- **Conv2:** 256 filters of size 5×5.  
+- **Max Pooling:** 3×3, stride 2.  
+- **Conv3:** 384 filters of size 3×3.  
+- **Conv4:** 384 filters of size 3×3.  
+- **Conv5:** 256 filters of size 3×3.  
+- **Max Pooling:** 3×3, stride 2.  
+- **FC1:** 4096 units.  
+- **FC2:** 4096 units.  
+- **Output:** 1000 units with softmax.  
+
+So compared to LeNet, AlexNet just stacks more convolution layers and makes
+them wider. One thing you might notice in some AlexNet diagrams is that the architecture
+looks split into two parallel streams. That wasn’t a design choice for accuracy
+— it was because the model was too large for a single GPU in 2012, so the
+authors divided it across two GPUs and linked them at certain layers.
+
+
+## Why the Design Choices Matter
+
+**ReLU activations**  
+Instead of tanh, AlexNet used ReLU. This made training much faster because ReLU
+doesn’t saturate in the positive domain. Today ReLU (or its variants) is the
+default.
+
+**Dropout**  
+The fully connected layers had dropout, which randomly turns off some neurons
+during training. This was a clever way to reduce overfitting.
+
+**Data augmentation**  
+They trained with random crops and flips of images. That might sound basic, but
+it was a big deal at the time because it helped the model generalize better.
+
+**GPUs**  
+AlexNet was split across two GPUs because a single one couldn’t handle the full
+model. This parallelization was another first for deep learning. 
+
+## Implementation Notes
+
+Here’s a PyTorch version of AlexNet that matches the original design:
+
+```python
+import torch
+import torch.nn as nn
+import torch.nn.functional as F
+
+class AlexNet(nn.Module):
+    def __init__(self, num_classes=1000):
+        super(AlexNet, self).__init__()
+        self.features = nn.Sequential(
+            nn.Conv2d(3, 96, kernel_size=11, stride=4, padding=2),
+            nn.ReLU(inplace=True),
+            nn.MaxPool2d(kernel_size=3, stride=2),
+            nn.Conv2d(96, 256, kernel_size=5, padding=2),
+            nn.ReLU(inplace=True),
+            nn.MaxPool2d(kernel_size=3, stride=2),
+            nn.Conv2d(256, 384, kernel_size=3, padding=1),
+            nn.ReLU(inplace=True),
+            nn.Conv2d(384, 384, kernel_size=3, padding=1),
+            nn.ReLU(inplace=True),
+            nn.Conv2d(384, 256, kernel_size=3, padding=1),
+            nn.ReLU(inplace=True),
+            nn.MaxPool2d(kernel_size=3, stride=2),
+        )
+
+        self.classifier = nn.Sequential(
+            nn.Dropout(),
+            nn.Linear(256 * 6 * 6, 4096),
+            nn.ReLU(inplace=True),
+            nn.Dropout(),
+            nn.Linear(4096, 4096),
+            nn.ReLU(inplace=True),
+            nn.Linear(4096, num_classes),
+        )
+
+    def forward(self, x):
+        x = self.features(x)
+        x = x.view(x.size(0), 256 * 6 * 6)
+        x = self.classifier(x)
+        return x
+```
+
+When I trained this on a subset of ImageNet, the model quickly became  
+computationally heavy compared to LeNet or even smaller CNNs. It made me  
+appreciate just how critical GPUs were for the success of AlexNet. Without  
+them, the training time would have been completely unrealistic.
+
+## Reflections
+
+Reading about AlexNet made me realize how much of progress in deep learning
+comes down to scaling. The ideas weren’t brand new. Convolutions, pooling, and
+fully connected layers were already there in LeNet. What AlexNet added was size,
+data, GPUs, and a few clever tricks like ReLU and dropout.
+
+After AlexNet, things snowballed. VGG showed that depth with small filters could
+work even better. GoogLeNet focused on efficiency with inception modules. ResNet
+solved the vanishing gradient problem with skip connections. But if you trace
+back all of those, AlexNet was the model that kicked the door open.

@@ -1,10 +1,8 @@
 'use client';
 
-import { Viewer } from '@react-pdf-viewer/core';
+import { Viewer, Worker } from '@react-pdf-viewer/core';
 import { defaultLayoutPlugin } from '@react-pdf-viewer/default-layout';
-import * as pdfjs from 'pdfjs-dist';
-
-pdfjs.GlobalWorkerOptions.workerSrc = `//unpkg.com/pdfjs-dist@${pdfjs.version}/build/pdf.worker.min.js`;
+import pdfjsPkg from 'pdfjs-dist/package.json';
 
 type Props = { fileUrl: string };
 
@@ -13,7 +11,9 @@ export function ResumeViewer({ fileUrl }: Props) {
 
   return (
     <div className="h-[80vh] w-full overflow-hidden rounded-lg border border-[hsl(var(--border))] bg-[oklch(var(--card))]">
-      <Viewer fileUrl={fileUrl} plugins={[defaultLayout]} />
+      <Worker workerUrl={`https://unpkg.com/pdfjs-dist@${pdfjsPkg.version}/build/pdf.worker.min.js`}>
+        <Viewer fileUrl={fileUrl} plugins={[defaultLayout]} />
+      </Worker>
     </div>
   );
 }

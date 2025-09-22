@@ -1,0 +1,561 @@
+---
+title: "R-CNN — Regions with CNN Features"
+date: "2025-09-21"
+description: "Breaking down the original R-CNN paper (2014), which combined region proposals with deep CNN features to push object detection far beyond the traditional methods like HOG and DPM."
+tags: ["Object Detection", "R-CNN", "Deep Learning History"]
+image: "/blog/rcnn/hero.png"
+---
+
+## Context & Motivation
+
+Up to this point in the timeline, most of the progress
+we’ve talked about has been on **image classification**.
+Models like AlexNet and VGG could look at a picture and
+tell you what was in it - cat, dog, car, airplane. That was
+impressive, but it wasn’t enough for a lot of real-world
+applications.
+
+Take **object detection** as an example. Instead of just
+answering *“is there a dog in this image?”*, we also need
+to answer *“where exactly is the dog?”*. That means the
+model has to output not just a label but also **bounding
+boxes** around the objects in the picture.
+
+This step from classification to detection was a huge
+challenge. Why? Because you don’t know in advance how
+many objects are in an image, where they are, or how big
+they might be. A single photo could have one large object,
+like a car, or it could have many small ones, like people
+in a crowd. The detector has to find them all.
+
+---
+
+### What came before R-CNN
+
+Before deep learning took over, people used **hand-crafted
+features** like SIFT, HOG, or Haar cascades combined with
+shallow classifiers such as SVMs or boosted decision
+trees. These worked for simple tasks like face detection
+(Haar cascades were used in early versions of OpenCV), but
+they didn’t scale well to complex datasets.
+
+The more advanced version of this was the **Deformable
+Parts Model (DPM)**. DPMs broke objects into parts (like a
+car = wheels + body + windows), each with its own detector
+that could deform a little bit. This was the state of the
+art on datasets like PASCAL VOC before CNNs showed up. But
+the performance of these methods had plateaued. They just
+weren’t improving much.
+
+---
+
+### Why not just use CNNs directly?
+
+At this point (around 2013–2014), CNNs like AlexNet had
+already proven themselves on classification. So the
+natural idea was: *why not just run a CNN everywhere in
+the image and find objects that way?*
+
+The problem was **computational cost**. Running a CNN on
+every possible location, at every possible scale, across
+an image would take forever. People tried this with
+“sliding window” methods, but it was painfully slow and
+impractical.
+
+---
+
+### The key problem
+
+So the field was stuck between two bad options:
+1. **Classical methods** like HOG + SVM or DPM: fast
+   enough, but accuracy was plateauing.
+2. **Naive CNN sliding windows**: accurate in principle,
+   but far too slow to be usable.
+
+What we needed was a way to **combine CNN features with
+detection** in a way that was both accurate *and* at least
+somewhat practical. That’s where **R-CNN (Regions with
+CNN features)** comes in. It introduced a clever pipeline
+that bridged this gap: use region proposals to narrow down
+where objects might be, then run CNNs only on those
+regions.
+
+This idea kicked off an entire family of models — Fast
+R-CNN, Faster R-CNN, Mask R-CNN — but it all started here.
+
+## Main Idea of R-CNN
+
+The breakthrough in R-CNN (Regions with CNN features) was
+realizing that you don’t need to run a CNN across every
+possible location in the image. Instead, you first **propose
+a small set of candidate regions** that are likely to
+contain objects, and then run a CNN only on those.
+
+The pipeline had five main steps:
+
+---
+
+### 1. Region Proposals
+Instead of sliding a window everywhere, R-CNN used a
+classical computer vision method called **Selective
+Search**. This algorithm looks at the image, groups
+similar pixels into regions, and proposes about **2000
+candidate bounding boxes** that might contain objects.
+The key insight: it’s much cheaper to check 2000 boxes
+than millions of sliding windows.
+
+---
+
+### 2. Warping Regions
+CNNs (like AlexNet) expect a fixed input size, but the
+region proposals all come in different shapes and sizes.
+So each proposed region is **warped into a fixed 227×227
+image** before feeding it to the CNN. This step made the
+pipeline clunky but necessary, since CNNs couldn’t handle
+variable input shapes.
+
+---
+
+### 3. CNN Feature Extraction
+Each warped region is passed through a CNN (in the
+original paper, they fine-tuned **AlexNet** on PASCAL VOC).
+Instead of using the final classification output, they
+take the activations from one of the fully connected
+layers as a **feature vector**. These CNN features turned
+out to be far more powerful than hand-crafted features
+like HOG.
+
+---
+
+### 4. Classification with SVMs
+Once you have features for each region, you still need
+to decide what’s inside. R-CNN trained a set of
+**class-specific SVM classifiers** (one per object class).
+Each SVM takes the CNN features and predicts whether the
+region contains, say, a dog, a car, or nothing at all.
+
+---
+
+### 5. Bounding Box Regression
+The last step fixes localization. The region proposals
+from Selective Search are rough — they often don’t line
+up perfectly with the object. So R-CNN adds a simple
+**bounding box regressor** (a linear regression model)
+that shifts and scales the box to better fit the object.
+
+---
+
+### Putting it Together
+So the full R-CNN pipeline looked like this:
+
+1. Generate ~2000 region proposals with Selective Search.  
+2. Warp each region to 227×227.  
+3. Extract features using a CNN.  
+4. Classify with SVMs.  
+5. Refine the bounding box with regression.  
+
+It was a multi-stage system, a bit clunky, but it worked
+shockingly well compared to anything before it. On the
+PASCAL VOC benchmark, R-CNN blew past traditional
+detectors like HOG + SVM or DPM, and it became the
+blueprint for the next generation of detectors.
+
+
+## Main Idea of R-CNN
+
+The breakthrough in R-CNN (Regions with CNN features) was
+realizing that you don’t need to run a CNN across every
+possible location in the image. Instead, you first **propose
+a small set of candidate regions** that are likely to
+contain objects, and then run a CNN only on those.
+
+The pipeline had five main steps:
+
+---
+
+### 1. Region Proposals
+Instead of sliding a window everywhere, R-CNN used a
+classical computer vision method called **Selective
+Search**. This algorithm looks at the image, groups
+similar pixels into regions, and proposes about **2000
+candidate bounding boxes** that might contain objects.
+The key insight: it’s much cheaper to check 2000 boxes
+than millions of sliding windows.
+
+---
+
+### 2. Warping Regions
+CNNs (like AlexNet) expect a fixed input size, but the
+region proposals all come in different shapes and sizes.
+So each proposed region is **warped into a fixed 227×227
+image** before feeding it to the CNN. This step made the
+pipeline clunky but necessary, since CNNs couldn’t handle
+variable input shapes.
+
+---
+
+### 3. CNN Feature Extraction
+Each warped region is passed through a CNN (in the
+original paper, they fine-tuned **AlexNet** on PASCAL VOC).
+Instead of using the final classification output, they
+take the activations from one of the fully connected
+layers as a **feature vector**. These CNN features turned
+out to be far more powerful than hand-crafted features
+like HOG.
+
+---
+
+### 4. Classification with SVMs
+Once you have features for each region, you still need
+to decide what’s inside. R-CNN trained a set of
+**class-specific SVM classifiers** (one per object class).
+Each SVM takes the CNN features and predicts whether the
+region contains, say, a dog, a car, or nothing at all.
+
+---
+
+### 5. Bounding Box Regression
+The last step fixes localization. The region proposals
+from Selective Search are rough — they often don’t line
+up perfectly with the object. So R-CNN adds a simple
+**bounding box regressor** (a linear regression model)
+that shifts and scales the box to better fit the object.
+
+---
+
+### Putting it Together
+So the full R-CNN pipeline looked like this:
+
+1. Generate ~2000 region proposals with Selective Search.  
+2. Warp each region to 227×227.  
+3. Extract features using a CNN.  
+4. Classify with SVMs.  
+5. Refine the bounding box with regression.  
+
+It was a multi-stage system, a bit clunky, but it worked
+shockingly well compared to anything before it. On the
+PASCAL VOC benchmark, R-CNN blew past traditional
+detectors like HOG + SVM or DPM, and it became the
+blueprint for the next generation of detectors.
+
+---
+
+### Step 3: CNN Feature Extraction
+
+Once all the region proposals are warped to 227×227,
+they’re ready to be passed into a CNN. In the original
+R-CNN, the authors used **AlexNet**, which had just won
+ImageNet in 2012. This was one of the first times CNNs
+were used for detection, not just classification.
+
+But here’s the important part: R-CNN didn’t use AlexNet’s
+final classification layer (the softmax). Instead, it took
+the activations from the **second fully connected layer**
+(fc7). This layer outputs a **4096-dimensional feature
+vector**, which serves as a rich description of the region.
+
+Why not just keep AlexNet’s softmax output? Because that
+softmax was trained for **classification** on ImageNet
+(1000 classes). For detection, we need something more
+flexible. By using fc7 as a feature extractor, R-CNN could
+pair those features with its own classifiers trained on
+detection datasets like PASCAL VOC.
+
+Another detail worth noting: to make training practical,
+R-CNN didn’t keep running AlexNet on-the-fly during SVM
+training. Instead, they ran all 2000 proposals per image
+through AlexNet once, saved the 4096-D features to disk,
+and then trained SVMs offline. This caching step worked,
+but it required **hundreds of gigabytes of storage**. It
+was one of the practical bottlenecks of the approach.
+
+---
+
+### Step 4: SVM Classification
+
+Once we have CNN features for each region, the next step
+is deciding what’s inside the box. Instead of retraining
+AlexNet’s built-in classifier, R-CNN trained a set of
+**linear SVMs** — one per object class.
+
+Here’s how it worked:
+
+- Suppose we’re detecting 20 object categories (like in
+  PASCAL VOC). R-CNN trained **20 different SVMs**, one
+  for each class.  
+- Each SVM takes the 4096-D feature vector from AlexNet’s
+  fc7 layer. The first decides *is this a car?*. The next decides *is this a dog?*. The next decides *is
+  this a person?*  
+- Any region that doesn’t strongly match one of these
+  SVMs is classified as **background**.
+
+Why SVMs instead of a softmax? At the time, SVMs were
+popular because they worked well with limited training
+data and gave sharp decision boundaries. Plus, the
+community was already familiar with SVM-based object
+detectors (like HOG + SVM), so the idea felt natural.
+
+The downside was complexity. This created a **multi-stage
+training pipeline**:  
+1. Fine-tune AlexNet on detection data.  
+2. Extract features for every proposal.  
+3. Train separate SVMs on top of those features.  
+
+It wasn’t end-to-end like modern detectors, but it was a
+clever way to combine CNN feature learning with classical
+classification methods.
+
+---
+
+### Step 5: Bounding Box Regression
+
+Even after Selective Search finds regions and the SVMs
+classify them, there’s still one issue: **the boxes aren’t
+always tight**. Selective Search might put a box around a
+dog, but it could be shifted slightly to the left or cut
+off part of the tail. For good detection, we need precise
+localization.
+
+To fix this, R-CNN added a lightweight **bounding box
+regression module**:
+
+- **Input:** the same 4096-D CNN features (from AlexNet’s
+  fc7 layer).  
+- **Output:** four numbers (Δx, Δy, Δw, Δh) that represent
+  adjustments to the box’s position (x, y) and size (w, h).  
+- **Training:** for each class, a separate linear regressor
+  is trained to predict these offsets so the box aligns
+  better with the ground truth.
+
+This step may sound small, but it made a noticeable
+difference. Without it, detections were often rough. With
+it, the boxes became tighter and more accurate.
+
+---
+
+### Putting It All Together
+
+Now we can see the full R-CNN pipeline in action:
+
+1. **Selective Search** proposes ~2000 regions per image.  
+2. **Warping** resizes each region to 227×227.  
+3. **CNN features** are extracted from AlexNet’s fc7 layer.  
+4. **SVMs** classify each region into an object category or
+   background.  
+5. **Bounding box regression** refines the boxes for better
+   localization.  
+
+This was a **multi-stage pipeline**, with each part trained
+separately: CNN fine-tuning, feature extraction, SVM
+training, and regression training. It wasn’t fast, and it
+wasn’t elegant — but it worked better than anything before
+it. On PASCAL VOC, R-CNN crushed traditional detectors like
+HOG + SVM and Deformable Parts Models, marking the start of
+the deep learning era in object detection.
+
+## Why This Was Important (and Its Limitations)
+
+R-CNN marked a turning point in object detection. On the
+PASCAL VOC benchmark, it improved mean average precision
+from about **30% with DPMs** to over **50%**. That was a
+huge jump — the kind of breakthrough that made everyone
+pay attention to CNNs.
+
+It proved three key things:  
+- **CNNs work for detection.** Until then, they were mostly
+  used for classification.  
+- **Hybrid pipelines can succeed.** By mixing Selective
+  Search, CNN features, and SVMs, R-CNN bridged the gap
+  between classical and deep learning methods.  
+- **There was room to grow.** Its clunky design highlighted
+  the path forward.
+
+But R-CNN also came with big drawbacks:  
+- **Slow:** ~2000 proposals per image, each passed through
+  a CNN. Processing one image could take minutes.  
+- **Multi-stage training:** CNN fine-tuning, SVMs, and box
+  regressors all trained separately.  
+- **Storage heavy:** features for proposals were cached to
+  disk, taking up hundreds of gigabytes.  
+
+So R-CNN was both a breakthrough *and* a bottleneck. It
+changed the conversation — detection was now about CNNs —
+but it also made it clear that faster, end-to-end methods
+were needed. That challenge is exactly what led to **Fast
+R-CNN** and beyond.
+
+## Implementation Notes
+
+R-CNN was a multi-stage pipeline. To make sense of it, let’s
+build it up piece by piece in PyTorch. This won’t be a full
+reproduction of the paper (since the real system had a lot
+of moving parts), but it will capture the main ideas.
+
+---
+
+### Step 1: Region Proposals with Selective Search
+
+The first step is generating candidate boxes. In practice,
+R-CNN used **Selective Search**, which isn’t built into
+PyTorch, but there are Python implementations we can call.
+
+Here’s a minimal way to run Selective Search with
+`scikit-image`:
+
+```python
+import skimage.data
+import skimage.segmentation
+import selectivesearch
+
+def get_region_proposals(image):
+    # run selective search
+    img_lbl, regions = selectivesearch.selective_search(
+        image, scale=500, sigma=0.9, min_size=10
+    )
+    candidates = set()
+    for r in regions:
+        if r['rect'] in candidates:
+            continue
+        x, y, w, h = r['rect']
+        # skip small or oddly sized boxes
+        if w < 20 or h < 20:
+            continue
+        candidates.add((x, y, w, h))
+    return list(candidates)
+```
+
+This gives us a list of bounding boxes (x, y, w, h).
+Typically, you’d keep around 2000 per image.
+
+###Step 2: Warping Regions
+
+Each box comes in different sizes. R-CNN warped them into
+227×227 crops so they could be passed through AlexNet.
+
+```python
+import torch
+import torchvision.transforms as T
+from PIL import Image
+
+transform = T.Compose([
+    T.Resize((227, 227)),
+    T.ToTensor(),
+])
+
+def crop_and_warp(image, box):
+    x, y, w, h = box
+    region = image[y:y+h, x:x+w]
+    region_pil = Image.fromarray(region)
+    return transform(region_pil).unsqueeze(0)  # add batch dim
+```
+
+This step introduces distortion but makes the inputs
+compatible with the CNN.
+
+### Step 3: CNN Feature Extraction
+
+R-CNN used AlexNet pretrained on ImageNet and fine-tuned on
+VOC. Instead of the softmax output, they took features from
+the fc7 layer.
+
+Here’s how we can do that with PyTorch’s AlexNet:
+
+```python
+import torchvision.models as models
+import torch.nn as nn
+
+alexnet = models.alexnet(pretrained=True)
+# remove final classifier, keep up to fc7
+feature_extractor = nn.Sequential(*list(alexnet.classifier.children())[:-1])
+
+def extract_features(region_tensor):
+    # pass through AlexNet (features + fc7)
+    with torch.no_grad():
+        feats = alexnet.features(region_tensor)
+        feats = feats.view(feats.size(0), -1)
+        feats = feature_extractor(feats)
+    return feats  # 4096-D vector
+```
+
+Each region proposal now becomes a 4096-dimensional
+vector.
+
+### Step 4: SVM Classification
+
+Once we have CNN features, we train linear SVMs (one per
+class) to classify each region.
+
+```python
+from sklearn import svm
+
+# Suppose we have feature vectors and labels
+X = [...]  # list of 4096-D feature vectors
+y = [...]  # labels: car, dog, person, etc.
+
+clf = svm.LinearSVC()
+clf.fit(X, y)
+```
+
+At test time, each region’s CNN features are passed into
+the SVMs to predict its class.
+
+### Step 5: Bounding Box Regression
+
+Finally, to refine localization, R-CNN added a bounding box
+regressor. This is just a linear regression model that
+predicts offsets to make the boxes tighter.
+
+```python
+from sklearn.linear_model import LinearRegression
+
+# Train per class with CNN features as input
+regressor = LinearRegression()
+regressor.fit(X, deltas)  # deltas = [dx, dy, dw, dh]
+```
+
+At test time, the predicted offsets adjust the candidate
+box to better fit the object.
+
+### Putting It Together
+
+So the workflow looks like this:
+
+1. Run Selective Search to get candidate boxes.
+2. Warp each box to 227×227.
+3. Extract CNN features (fc7) from AlexNet.
+4. Classify with SVMs.
+5. Refine boxes with regression.
+
+Each part had to be trained separately — which made R-CNN
+slow and storage-heavy — but this pipeline was the first to
+show that CNN features could crush traditional detectors.
+
+## Reflections and What Came Next
+
+What stands out to me about R-CNN is how much it feels
+like a bridge between two worlds. On one side, you have
+the old-school computer vision tricks like Selective
+Search and SVMs. On the other, you have deep CNNs like
+AlexNet. R-CNN glued them together, and that glue was
+enough to change the field.
+
+Reading about it today, the design almost feels clunky.
+Running a CNN 2000 times per image, saving hundreds of
+gigabytes of features, training SVMs and regressors
+separately. It’s not elegant. But in 2014, it was a
+proof of concept that CNN features were powerful enough
+to replace hand-crafted ones. That proof was all the
+community needed.
+
+The other thing I learned is how research often moves.
+You don’t jump from “bad detection” to “perfect detection”
+in one step. R-CNN solved the accuracy problem but left
+behind big speed and efficiency problems. Those exact
+pain points directly led to **Fast R-CNN** and then
+**Faster R-CNN**. Each version fixed one bottleneck until
+the pipeline became fast, end-to-end, and practical.
+
+So while R-CNN itself is rarely used today, it’s the
+ancestor of almost every detector that came after. For
+me, it’s a reminder that sometimes the “clunky first
+step” is the one that unlocks the entire research area.

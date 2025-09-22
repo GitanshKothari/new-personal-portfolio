@@ -1,0 +1,558 @@
+---
+title: "Fast R-CNN — Making Detection Practical"
+date: "2025-09-22"
+description: "Breaking down Fast R-CNN (2015), which introduced ROI Pooling and end-to-end multi-task training, making object detection far faster and more accurate than the original R-CNN."
+tags: ["Object Detection", "Fast R-CNN", "Deep Learning History"]
+image: "/blog/fast-rnn/hero.png"
+---
+
+## Context & Motivation
+
+R-CNN had proven a big point: deep CNN features were far
+better than hand-crafted ones for object detection. On
+PASCAL VOC, it nearly doubled the mean average precision
+compared to Deformable Parts Models (DPMs). But while the
+accuracy was great, the system itself was a mess.
+
+The biggest pain point was **speed**. For each image,
+Selective Search proposed about 2000 regions, and the CNN
+had to be run separately on every single one. Processing a
+single image could take minutes. That made R-CNN
+impressive as research, but unusable in practice.
+
+The second issue was **multi-stage training**. First you
+fine-tuned the CNN. Then you froze it and trained SVMs on
+the features. Then you trained bounding box regressors.
+Finally, you stitched everything together at test time. It
+worked, but it wasn’t elegant, and storing all those CNN
+features on disk could take hundreds of gigabytes.
+
+So by 2015, the question was: how do we keep the accuracy
+but get rid of the inefficiencies? The answer came in the
+form of **Fast R-CNN**, which reorganized the pipeline
+around two key ideas:
+
+1. Run the CNN **once per image**, not once per region.  
+2. Train the classifier and regressor **end-to-end**, with
+   a single multi-task loss.
+
+Those two changes made Fast R-CNN dramatically faster,
+cleaner, and easier to train. It pushed object detection
+closer to being practical outside the lab.
+
+
+## Main Idea of Fast R-CNN
+
+The key insight behind Fast R-CNN was simple: stop wasting
+time. Instead of running the CNN thousands of times on
+warped proposals, **run it once on the whole image** and
+then reuse that shared feature map for all proposals.
+
+Here’s how the pipeline looks compared to R-CNN:
+
+1. The full image is passed through a CNN (in the paper,
+   VGG16 was the main backbone). This produces a **feature
+   map** for the entire image.  
+2. Region proposals (still from Selective Search) are
+   projected onto this feature map. Instead of cropping and
+   warping raw pixels, we now crop from the feature map.  
+3. A new trick called **ROI Pooling** converts each region
+   of interest into a fixed-size feature (like 7×7). This
+   means no more stretching objects into 227×227 squares.  
+4. These fixed-size pooled features go through a few fully
+   connected layers.  
+5. From there, the network branches into two heads:  
+   - A **softmax classifier** that predicts the object
+     category (or background).  
+   - A **bounding box regressor** that refines the box
+     coordinates.  
+
+The whole system is trained **end-to-end** with a single
+multi-task loss:
+
+- **Classification loss:** softmax cross-entropy.  
+- **Localization loss:** smooth L1 regression loss.  
+
+This solved two of R-CNN’s biggest problems in one shot:
+- Computation was shared — the CNN ran once per image, not
+  2000 times.  
+- The pipeline was unified — no more SVMs, no more feature
+  caching, no more separate regressors.  
+
+With these changes, Fast R-CNN ran orders of magnitude
+faster than R-CNN and even improved accuracy. It showed
+that object detection could be efficient *and* accurate,
+setting the stage for the next leap: Faster R-CNN.
+
+
+## Architecture Breakdown
+
+Fast R-CNN kept the same overall goal as R-CNN — find
+objects and draw boxes around them — but restructured the
+pipeline to be faster and more elegant. Let’s walk through
+it piece by piece.
+
+---
+
+### Step 1: Full-Image CNN Feature Map
+
+In R-CNN, each region proposal was cropped from the image,
+resized to 227×227, and passed through a CNN separately.
+That meant thousands of CNN forward passes per image —
+incredibly slow.
+
+Fast R-CNN flipped this idea. Instead of cropping first,
+it runs the CNN **once on the entire image**. The output is
+a **convolutional feature map** (for example, with VGG16
+you get a feature map that’s about 1/16th the size of the
+input).
+
+This was the big efficiency gain. All the heavy lifting
+of convolution happens only once. The proposals will
+reuse this shared feature map instead of raw pixels.
+
+---
+
+### Step 2: Region Proposals on the Feature Map
+
+Fast R-CNN still relied on **Selective Search** to generate
+about 2000 candidate regions. The difference was what
+happened next.
+
+Instead of cropping the proposals directly from the raw
+image (like in R-CNN), Fast R-CNN **projects them onto the
+CNN feature map**. Each proposal corresponds to a rectangle
+on the feature map, since the map is spatially aligned
+with the input image.
+
+This change looks small, but it removed the need to resize
+and warp every proposal into 227×227 images. Instead, all
+proposals are just slices of the shared feature map —
+lighter, faster, and less distorted.
+
+To see how projection works, let’s walk through an
+example with real numbers.
+
+Suppose our input image is **224×224 pixels**. After
+passing through VGG16 (used in the Fast R-CNN paper), the
+final convolutional feature map is **14×14** in spatial
+resolution. Why? Because VGG16 has pooling layers that
+downsample by a factor of 2 at five different stages:
+2⁵ = 32. So the feature map is roughly 1/16 the size of
+the input.
+
+Now imagine Selective Search proposes a bounding box:
+(x=32, y=64, w=96, h=128). This is in the coordinates of
+the original image.
+
+To map this box onto the feature map, we divide all values
+by the downsampling factor (16 in this case):
+
+- x = 32 ÷ 16 = 2  
+- y = 64 ÷ 16 = 4  
+- w = 96 ÷ 16 = 6  
+- h = 128 ÷ 16 = 8  
+
+So the corresponding region on the feature map is a box at
+(x=2, y=4) with size (6×8). This is the **projection step**:
+the proposal box from the image becomes a rectangle on the
+feature map.
+
+From here, ROI Pooling will take that 6×8 patch and convert
+it into a fixed grid (say 7×7) so it can go into the fully
+connected layers.
+
+### Step 3: ROI Pooling
+
+Here’s the challenge: after projection, each region
+proposal corresponds to a rectangle on the shared feature
+map. But these rectangles are all different sizes. Some
+might cover a 6×8 patch, others might be 3×3, others 12×14.
+Fully connected layers, however, expect a fixed-size input.
+
+R-CNN solved this by **warping each region to 227×227**
+before feeding it to AlexNet. Fast R-CNN replaced that
+with a new operation: **ROI Pooling**.
+
+How ROI Pooling works:
+
+1. Each region of interest (ROI) is projected onto the
+   feature map (like we saw in the last step).  
+   Example: a box covering a 6×8 patch.  
+2. This patch is divided into a fixed number of bins, say
+   **7×7**. That means the 6×8 area is split into 49 bins.  
+3. Inside each bin, we perform **max pooling**. No matter
+   how many values are inside a bin, it’s reduced to one
+   number.  
+4. The result is a **7×7 grid of pooled values**. Each ROI,
+   no matter its original size, now produces the same
+   fixed-size output: 7×7×C (where C is the number of
+   channels in the feature map, e.g., 512 for VGG16).
+
+So in our example, a 6×8 patch becomes exactly 7×7 after
+ROI Pooling. Another ROI, maybe 12×14, would also shrink
+to 7×7. This allowed Fast R-CNN to handle variable-sized
+regions **without any distortion**.
+
+Why it mattered:
+- No more warping raw pixels.  
+- Computation stayed on the feature map (cheaper).  
+- Output was fixed-size, so the same FC layers could
+  process any ROI.
+
+---
+
+### Step 4: Fully Connected Layers and Outputs
+
+Once each ROI has been pooled into a fixed 7×7×C feature,
+we can flatten it and pass it through fully connected
+layers. In the Fast R-CNN paper, they used VGG16, so after
+ROI Pooling each proposal was fed into two fully connected
+layers with 4096 units each.
+
+At the top, the network **splits into two heads**:
+
+1. **Classification head:**  
+   - A softmax layer predicts the probability of each class
+     plus one extra class for “background.”  
+   - Example: for PASCAL VOC (20 categories), the softmax
+     has 21 outputs.  
+   - This replaces the SVMs used in R-CNN.
+
+2. **Bounding box regression head:**  
+   - A regressor predicts 4 numbers (Δx, Δy, Δw, Δh) for
+     each class.  
+   - These are offsets that adjust the ROI to better match
+     the object.  
+   - Unlike R-CNN, this regressor is trained jointly with
+     the classifier, not separately.
+
+Together, these two heads make Fast R-CNN **end-to-end**.
+Instead of training a CNN, then SVMs, then regressors in
+different stages, everything is optimized at once with a
+**multi-task loss**.
+
+### Step 5: Multi-task Loss
+
+The final innovation in Fast R-CNN was how it trained the
+two outputs — classification and bounding box regression —
+**together in a single objective**. This was called the
+**multi-task loss**.
+
+---
+
+#### 1. Classification Loss
+For each region of interest, the network predicts a class
+label from `K+1` categories: one for each object class
+(e.g., 20 in PASCAL VOC) plus one for “background.”  
+
+The classification head outputs a probability vector `p`
+of length `K+1`. The ground truth label is a number `u`
+(0 = background, 1 = aeroplane, …, 20 = tvmonitor).
+
+The loss here is just **softmax cross-entropy**:
+L_cls(p, u) = -log(p_u)
+
+
+This penalizes the model if it assigns low probability to
+the true class.
+
+---
+
+#### 2. Localization Loss
+If the region is a foreground object (not background), we
+also want the bounding box regressor to improve the box
+coordinates. For each class, the regression head predicts
+4 numbers: `t = (tx, ty, tw, th)`.
+
+The ground truth box is parameterized in the same way,
+`v = (vx, vy, vw, vh)`. The regression target is the
+difference between proposal and ground truth, normalized
+for scale.
+
+The loss used here is the **Smooth L1 loss**:
+L_loc(t, v) = Σ smooth_L1(t_i - v_i)
+
+
+Why Smooth L1?  
+- L2 loss is too sensitive to outliers (big errors blow up
+  the gradients).  
+- L1 loss is stable but not smooth.  
+- Smooth L1 combines the best of both: quadratic for small
+  errors, linear for big ones.  
+
+---
+
+#### 3. Combining the Two
+The final multi-task loss for one ROI is:
+
+L(p, u, t, v) = L_cls(p, u) + λ [u ≥ 1] L_loc(t, v)
+
+
+- `L_cls(p, u)` = classification loss.  
+- `L_loc(t, v)` = localization loss.  
+- `[u ≥ 1]` is an indicator function — we only apply the
+  bounding box loss if the ROI is a foreground object.  
+- λ is a balancing factor (set to 1 in the paper).
+
+This meant the network could **learn both tasks at the same
+time**, end-to-end. Unlike R-CNN, there was no need for
+separate SVMs and regressors. Everything was optimized
+together.
+
+---
+
+#### Why It Mattered
+- Unified training = simpler pipeline.  
+- Classification and localization reinforced each other.  
+- Faster and more accurate than the stitched-together R-CNN
+approach.  
+
+This multi-task loss design carried forward into almost
+every detector that came after Fast R-CNN, from Faster
+R-CNN to modern architectures.
+
+## Why the Design Choices Matter
+
+What makes Fast R-CNN so interesting is that it didn’t
+invent a brand-new idea out of nowhere. Instead, it took
+the messy pieces of R-CNN and reorganized them into a
+pipeline that was both faster and cleaner. Each design
+choice directly addressed a specific weakness of R-CNN.
+
+---
+
+### Shared Convolutional Features
+- **Problem in R-CNN:** the CNN had to run separately on
+  ~2000 regions per image. This made detection painfully
+  slow.  
+- **Fast R-CNN’s solution:** run the CNN once on the whole
+  image, then reuse that feature map for all proposals.  
+- **Why it mattered:** suddenly, the bottleneck shifted
+  from “minutes per image” to something much closer to
+  real time. The computational waste was gone.
+
+---
+
+### ROI Pooling
+- **Problem in R-CNN:** region proposals came in different
+  shapes and had to be warped to 227×227, causing
+  distortion and wasted computation.  
+- **Fast R-CNN’s solution:** ROI Pooling mapped proposals
+  onto the shared feature map and pooled them into a fixed
+  size (e.g., 7×7).  
+- **Why it mattered:** variable-sized proposals became
+  standardized *without* warping, and computation stayed
+  inside the network. ROI Pooling became a building block
+  that lasted until ROI Align (Mask R-CNN).
+
+---
+
+### End-to-End Multi-task Training
+- **Problem in R-CNN:** training was split into stages:
+  fine-tune CNN → extract features → train SVMs → train
+  regressors. Each step was separate and required storing
+  huge feature sets on disk.  
+- **Fast R-CNN’s solution:** a single network with two
+  heads (classification + regression), trained jointly with
+  a multi-task loss.  
+- **Why it mattered:** no more SVMs, no more feature
+  caching. The detector became trainable in one pass,
+  directly optimizing for detection performance.
+
+---
+
+### Smooth L1 Loss for Localization
+- **Problem in R-CNN:** bounding box regression used simple
+  linear regression, which could be sensitive to outliers.  
+- **Fast R-CNN’s solution:** Smooth L1 loss, which is
+  stable for large errors but precise for small ones.  
+- **Why it mattered:** better localization and more stable
+  training.
+
+---
+
+Together, these choices turned R-CNN’s proof of concept
+into something practical. Fast R-CNN was still tied to
+Selective Search for region proposals, but by removing the
+computational and training bottlenecks, it showed that CNN
+detectors could be both accurate and efficient. This
+paved the way for the next step: Faster R-CNN.
+
+
+## Implementation Notes
+
+Fast R-CNN is easier to explain if we build it piece by
+piece. The main difference from R-CNN is that the CNN runs
+once per image, and then region-specific features are
+pulled out with ROI Pooling. Let’s walk through it in
+steps.
+
+---
+
+### Step 1: Shared Feature Map Extraction
+
+We start with a CNN backbone (VGG16 in the original
+paper). Instead of running it 2000 times per image, we run
+it once and keep the convolutional feature map.
+
+```python
+import torch
+import torch.nn as nn
+import torchvision.models as models
+
+# VGG16 backbone, keep only convolutional layers
+vgg16 = models.vgg16(weights=models.VGG16_Weights.IMAGENET1K_V1)
+backbone = nn.Sequential(*list(vgg16.features.children()))
+
+
+Now, passing an image through backbone gives us the
+shared feature map that proposals will reuse.
+
+### Step 2: Region Proposals
+
+Fast R-CNN still used Selective Search for proposals.
+We can reuse the code from the R-CNN section that returns
+boxes (x, y, w, h) in image coordinates.
+
+The only difference is that now we will project those
+boxes onto the feature map. If the feature map is 1/16
+the size of the input image, we divide all coordinates by
+16.
+
+```python 
+def project_boxes(boxes, stride=16):
+    # boxes = [(x, y, w, h), ...] in image coordinates
+    projected = []
+    for (x, y, w, h) in boxes:
+        projected.append((
+            int(x / stride),
+            int(y / stride),
+            int(w / stride),
+            int(h / stride)
+        ))
+    return projected
+```
+
+### Step 3: ROI Pooling
+
+Now comes the key innovation. We take each projected box
+on the feature map and turn it into a fixed-size tensor,
+say 7×7, regardless of the box size.
+
+PyTorch has this implemented in torchvision.ops:
+
+```python
+from torchvision.ops import roi_pool
+
+# feature_map: [N, C, H, W]
+# boxes: list of tensors [num_boxes, 5] (image_idx, x1, y1, x2, y2)
+pooled = roi_pool(feature_map, boxes, output_size=(7, 7))
+```
+
+- Each ROI is cropped from the feature map.
+- It is divided into a grid (7×7).
+- Max pooling inside each cell reduces it to a fixed-size
+feature.
+
+So no matter if the original proposal was 6×8 or 12×14,
+after ROI Pooling we always get a 7×7×C tensor.
+
+### Step 4: Fully Connected Layers
+
+Once ROI features are fixed size, we flatten them and pass
+them through fully connected layers (like in VGG).
+
+```python
+class FastRCNNHead(nn.Module):
+    def __init__(self, in_channels, num_classes):
+        super(FastRCNNHead, self).__init__()
+        self.fc1 = nn.Linear(in_channels * 7 * 7, 4096)
+        self.fc2 = nn.Linear(4096, 4096)
+        self.cls_score = nn.Linear(4096, num_classes)   # softmax
+        self.bbox_pred = nn.Linear(4096, num_classes * 4)  # bbox regression
+
+    def forward(self, x):
+        x = x.flatten(start_dim=1)
+        x = torch.relu(self.fc1(x))
+        x = torch.relu(self.fc2(x))
+        scores = self.cls_score(x)
+        boxes = self.bbox_pred(x)
+        return scores, boxes
+```
+Here:
+- cls_score predicts class probabilities (softmax).
+- bbox_pred predicts 4 offsets for each class.
+
+### Step 5: Multi-task Loss
+
+Finally, we train both heads together using the multi-task
+loss:
+
+```python
+import torch.nn.functional as F
+
+def fast_rcnn_loss(scores, boxes, labels, targets, lambda_=1.0):
+    # Classification loss
+    cls_loss = F.cross_entropy(scores, labels)
+
+    # Localization loss (Smooth L1), only for foreground ROIs
+    pos = labels > 0
+    loc_loss = F.smooth_l1_loss(
+        boxes[pos], targets[pos], reduction="sum"
+    ) / labels.numel()
+
+    return cls_loss + lambda_ * loc_loss
+```
+
+This combines softmax cross-entropy for classification
+with Smooth L1 for bounding box regression.
+
+### Putting It All Together
+So the Fast R-CNN workflow looks like this:
+1. Run the CNN backbone once to get the feature map.
+2. Project proposals onto the feature map.
+3. Apply ROI Pooling to get fixed-size features.
+4. Pass pooled features through fully connected layers.
+5. Output class probabilities + bounding box refinements.
+6. Train the whole system end-to-end with multi-task loss.
+
+Compared to R-CNN, this design eliminated redundant CNN
+computations, removed SVMs, and replaced warping with ROI
+Pooling. The result was a detector that was both faster
+and more accurate.
+
+## Reflections and What Came Next
+
+What I find striking about Fast R-CNN is how much of a
+“cleanup job” it feels like. R-CNN had already shown that
+CNN features were powerful for detection, but the system
+was slow, clunky, and stitched together in multiple stages.
+Fast R-CNN didn’t invent something totally new; instead, it
+fixed the exact bottlenecks that were holding R-CNN back.
+
+- **Shared computation** turned detection from minutes per
+  image into something much closer to real time.  
+- **ROI Pooling** solved the distortion problem of warping
+  proposals.  
+- **Multi-task training** simplified the pipeline into a
+  single end-to-end system.  
+
+For me, the big lesson here is how progress often happens:
+not by giant leaps, but by carefully identifying pain
+points and removing them one by one. Fast R-CNN showed that
+a detector could be both accurate *and* efficient, and that
+set the stage for the next step.
+
+Of course, one major bottleneck still remained: **Selective
+Search**. Even though the rest of the system was fast,
+region proposals were still computed with a slow, hand-
+crafted algorithm. Fixing that would be the next leap, and
+it came quickly in the form of **Faster R-CNN**, where the
+region proposal network (RPN) finally replaced Selective
+Search.
+
+Fast R-CNN isn’t widely used today, but its fingerprints
+are everywhere. ROI Pooling, multi-task loss, and the idea
+of end-to-end detection training carried forward into
+almost every detector that followed.

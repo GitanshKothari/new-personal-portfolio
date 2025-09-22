@@ -3,8 +3,8 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "contentlayer build && next dev",
-    "build": "npm run contentlayer && next build",
+    "dev": "next dev",
+    "build": "next build",
     "start": "next start",
     "lint": "eslint",
     "contentlayer": "contentlayer build"
@@ -40,6 +40,7 @@
     "react-dom": "19.1.0",
     "react-hook-form": "^7.62.0",
     "react-simple-typewriter": "^5.0.1",
+    "reading-time": "^1.5.0",
     "rehype-katex": "^7.0.1",
     "rehype-prism-plus": "^2.0.1",
     "remark-gfm": "^4.0.1",
@@ -51,6 +52,7 @@
     "zod": "^4.1.5"
   },
   "devDependencies": {
+    "@emotion/is-prop-valid": "^1.4.0",
     "@eslint/eslintrc": "^3",
     "@tailwindcss/postcss": "^4",
     "@tailwindcss/typography": "^0.5.16",

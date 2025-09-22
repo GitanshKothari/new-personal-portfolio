@@ -24,6 +24,7 @@ export type Post = {
   image?: string | undefined
   /** MDX file body */
   body: MDX
+  readingTime: string
   url: string
 }  
 

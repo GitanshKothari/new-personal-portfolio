@@ -1,0 +1,154 @@
+---
+title: "VGG – Simplicity in Depth"
+date: "2025-09-14"
+description: "Exploring VGG, the architecture that showed depth and uniform design 
+          could improve performance on large-scale image recognition."
+tags: ["CNN", "VGG", "Deep Learning History"]
+image: "/blog/vgg/hero.png"
+---
+
+## Context & Motivation
+
+By 2014, AlexNet had already proven that CNNs could crush image classification
+when scaled up, and GoogLeNet was experimenting with clever modules to make
+things efficient. VGG, from the Visual Geometry Group at Oxford (hence the
+name), took a different path. Instead of being fancy, it asked a simple
+question: *what if we just make the network deeper, but keep it uniform?*
+
+That idea sounds obvious now, but it was powerful. VGG showed that depth alone,
+combined with small 3×3 filters, could significantly improve performance on
+ImageNet. This was also one of the first models that people outside research
+used heavily for transfer learning, since its structure was clean and easy to
+adapt.
+
+When I first learned about VGG in class, it was presented as the "clean"  
+architecture. It looked boring compared to GoogLeNet or ResNet, but that’s  
+what made it so influential. The simplicity was its strength.
+
+## Model Breakdown
+
+The most popular versions are **VGG16** and **VGG19**, where the numbers stand
+for how many weight layers they have. The structure looks repetitive, but that
+was the point: stack small 3×3 convolutions, add a pooling layer, repeat, and
+then finish with a few fully connected layers.
+
+<figure className="my-6 text-center">
+  <img src="/blog/vgg/block-architecture.png" alt="VGG block diagram"
+       className="mx-auto rounded-lg shadow-md" />
+  <figcaption className="mt-2 text-sm text-gray-400 italic">
+    VGG block diagram showing stacked 3×3 convolutions and
+    pooling layers
+  </figcaption>
+</figure>
+
+Here’s the pattern for **VGG16**:
+
+- Input: 224×224 RGB image  
+- Conv3-64 → Conv3-64 → MaxPool  
+- Conv3-128 → Conv3-128 → MaxPool  
+- Conv3-256 → Conv3-256 → Conv3-256 → MaxPool  
+- Conv3-512 → Conv3-512 → Conv3-512 → MaxPool  
+- Conv3-512 → Conv3-512 → Conv3-512 → MaxPool  
+- FC-4096 → FC-4096 → FC-1000 (softmax)  
+
+The main differences from AlexNet:  
+- All conv filters are 3×3 with stride 1, padding 1  
+- Pooling is always 2×2 with stride 2  
+- Deeper, more consistent design (16–19 layers)   
+
+---
+
+## Why the Design Choices Matter
+
+**3×3 convolutions**  
+Stacking two 3×3 convs gives you the receptive field of a 5×5 filter, but with
+fewer parameters and more non-linearities. This made the network expressive
+without exploding in size.
+
+**Depth**  
+Before VGG, CNNs were usually under 10 layers. VGG pushed this to 16 and 19
+layers, showing that deeper really was better (as long as you had data and
+compute).
+
+**Uniform design**  
+Because every block looked the same, it was easy to reason about and extend.
+This is why VGG quickly became a go-to backbone for other tasks like detection
+and segmentation.
+
+--- 
+
+
+## Implementation Notes
+
+Here’s a simplified PyTorch version of VGG16:
+
+```python
+import torch
+import torch.nn as nn
+
+class VGG16(nn.Module):
+    def __init__(self, num_classes=1000):
+        super(VGG16, self).__init__()
+        self.features = nn.Sequential(
+            # Block 1
+            nn.Conv2d(3, 64, 3, padding=1), nn.ReLU(True),
+            nn.Conv2d(64, 64, 3, padding=1), nn.ReLU(True),
+            nn.MaxPool2d(2, 2),
+            # Block 2
+            nn.Conv2d(64, 128, 3, padding=1), nn.ReLU(True),
+            nn.Conv2d(128, 128, 3, padding=1), nn.ReLU(True),
+            nn.MaxPool2d(2, 2),
+            # Block 3
+            nn.Conv2d(128, 256, 3, padding=1), nn.ReLU(True),
+            nn.Conv2d(256, 256, 3, padding=1), nn.ReLU(True),
+            nn.Conv2d(256, 256, 3, padding=1), nn.ReLU(True),
+            nn.MaxPool2d(2, 2),
+            # Block 4
+            nn.Conv2d(256, 512, 3, padding=1), nn.ReLU(True),
+            nn.Conv2d(512, 512, 3, padding=1), nn.ReLU(True),
+            nn.Conv2d(512, 512, 3, padding=1), nn.ReLU(True),
+            nn.MaxPool2d(2, 2),
+            # Block 5
+            nn.Conv2d(512, 512, 3, padding=1), nn.ReLU(True),
+            nn.Conv2d(512, 512, 3, padding=1), nn.ReLU(True),
+            nn.Conv2d(512, 512, 3, padding=1), nn.ReLU(True),
+            nn.MaxPool2d(2, 2),
+        )
+        self.classifier = nn.Sequential(
+            nn.Linear(512 * 7 * 7, 4096),
+            nn.ReLU(True),
+            nn.Dropout(),
+            nn.Linear(4096, 4096),
+            nn.ReLU(True),
+            nn.Dropout(),
+            nn.Linear(4096, num_classes),
+        )
+
+    def forward(self, x):
+        x = self.features(x)
+        x = x.view(x.size(0), -1)
+        x = self.classifier(x)
+        return x
+```
+
+Training VGG was much more computationally expensive than AlexNet. It  
+highlighted the need for faster GPUs and more memory. Despite that, it became  
+hugely popular in research, especially for transfer learning on smaller  
+datasets.
+
+## Reflections
+
+What I like about VGG is how straightforward it is. Compared to GoogLeNet’s
+Inception modules or ResNet’s skip connections, VGG is just stack, pool, stack,
+pool. That simplicity made it a great teaching model and a backbone for lots of
+other tasks.
+
+Of course, it came at a cost. VGG16 has about 138 million parameters, which is
+huge compared to modern networks. It’s heavy and not very efficient. But it
+proved the point: depth and uniform design worked.
+
+Later models built on this lesson. ResNet solved the training difficulties that
+came with even deeper networks. EfficientNet explored better scaling rules.
+Transformers went in a totally new direction. But VGG’s fingerprint is still
+visible in many of them: small filters, repeated blocks, and the idea that
+simple can sometimes beat clever.

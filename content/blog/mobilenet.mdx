@@ -1,0 +1,297 @@
+---
+title: "MobileNet — Lightweight CNNs for Mobile Devices"
+date: "2025-09-20"
+description: "Breaking down MobileNet, the model that introduced depthwise separable convolutions to make CNNs efficient enough for mobile and embedded systems."
+tags: ["CNN", "MobileNet", "Efficient Models"]
+image: "/blog/mobilenet/hero.png"
+---
+
+## Context & Motivation
+
+Up until ResNet, the trend was clear: deeper, bigger, more accurate. That’s
+great if you have massive GPUs, but what if you want to run a CNN on your phone
+or an IoT device? That’s where **MobileNet** comes in. Published by Google in
+2017, MobileNet showed how to make CNNs efficient without losing too much
+accuracy.
+
+The key idea was the **depthwise separable convolution**, which reduces the
+computations of a normal convolution by almost a factor of 8–9×. That’s what
+made MobileNet small and fast enough for real-time applications like image
+classification on mobile devices.
+
+## Architecture Breakdown
+
+<figure className="my-6 text-center">
+  <img src="/blog/mobilenet/depthwise-and-pointwise.png"
+       alt="Depthwise vs Pointwise Convolution"
+       className="mx-auto rounded-lg shadow-md" />
+  <figcaption className="mt-2 text-sm text-gray-400 italic">
+    Standard convolution (left) vs depthwise + pointwise convolution (right). 
+    Depthwise applies one filter per channel, pointwise mixes channels with 
+    1×1 convolutions.
+  </figcaption>
+</figure>
+
+The big idea in MobileNet is the **depthwise separable
+convolution**. To understand why it matters, let’s first
+look at a regular convolution.
+
+### Standard convolution
+In a normal 3×3 convolution with, say, 32 filters on an
+input with 32 channels, each filter is 3×3×32 in size. That
+means every filter looks across all channels at once, and
+we apply 32 of them. The math adds up fast — about 9×32×32
+operations per pixel location.
+
+That’s powerful, but also expensive.
+
+### Step 1: Depthwise convolution
+MobileNet splits this into two parts. First comes the
+**depthwise convolution**. Instead of each filter looking
+at *all* channels, it applies one filter per channel. If the
+input has 32 channels, we use 32 separate 3×3 filters, one
+for each channel. That way, each channel is processed
+independently.
+
+This captures spatial patterns (edges, textures) inside
+each channel, but doesn’t mix information *between*
+channels yet.
+
+### Step 2: Pointwise convolution
+Next comes the **pointwise convolution**, which is just a
+1×1 convolution. This layer mixes information across the
+channels. You can think of it as combining the independent
+channel-wise features learned in the depthwise step.
+
+The pointwise step is what lets the network build richer
+representations after the cheap depthwise step.
+
+### Why this matters
+Together, these two steps approximate what a full
+convolution does, but with far fewer operations. For
+example:
+
+- Standard 3×3 conv on 256 channels with 256 filters:
+  ~590k multiplications.  
+- Depthwise (3×3 per channel) + pointwise (1×1 mixing):
+  ~69k multiplications.  
+
+That’s nearly an **8–9× reduction** in computation, with
+only a small drop in accuracy.
+
+### MobileNet v1 design
+The original MobileNet v1 is basically a stack of these
+depthwise separable conv blocks. Every block has:
+
+- Depthwise conv (3×3) → BatchNorm → ReLU  
+- Pointwise conv (1×1) → BatchNorm → ReLU  
+
+The network is deep but light, and at the end it uses
+average pooling and a fully connected layer for
+classification.
+
+### Width and resolution multipliers
+On top of this, MobileNet added two clever “knobs” for
+trading off speed and accuracy:
+
+- **Width multiplier (α):** scales the number of channels
+  in every layer. If α < 1, the network gets thinner
+  (fewer channels, fewer computations). For example, α=0.5
+  halves the number of channels everywhere.  
+
+- **Resolution multiplier (ρ):** scales the input image
+  size. Training and running at 160×160 instead of
+  224×224 makes the network much faster, though accuracy
+  drops a bit.  
+
+These multipliers gave developers flexibility. You could
+pick a smaller MobileNet for a phone, or a bigger one for
+a more powerful device. It made the architecture practical
+outside of research labs.
+
+
+## Why the Design Choices Matter
+
+**Efficiency over brute force**  
+Instead of stacking more layers like VGG or ResNet, MobileNet was about doing
+more with less. This made it practical for edge devices.
+
+**Depthwise separable convs**  
+This was the game changer. They became a staple not just in MobileNet but in
+later models like Xception and EfficientNet.
+
+**Multipliers (α, ρ)**  
+This gave developers flexibility. Depending on the device, you could shrink the
+network to run faster, or keep it larger for accuracy.
+
+---
+
+## Implementation Notes
+
+Let’s build MobileNet step by step in PyTorch. The key is
+to start with the core idea — depthwise separable
+convolutions — and then show how that idea becomes the
+actual MobileNet blocks. Along the way, we’ll also cover
+width and resolution multipliers.
+
+### Step 1: Depthwise Separable Convolution
+
+At the heart of MobileNet is the depthwise separable
+convolution. To make the concept clear, let’s write a
+minimal version:
+
+```python
+import torch
+import torch.nn as nn
+
+class DepthwiseSeparableConv(nn.Module):
+    def __init__(self, in_channels, out_channels, stride=1):
+        super(DepthwiseSeparableConv, self).__init__()
+        # depthwise: one 3x3 filter per input channel
+        self.depthwise = nn.Conv2d(
+            in_channels, in_channels, kernel_size=3,
+            stride=stride, padding=1, groups=in_channels,
+            bias=False
+        )
+        # pointwise: 1x1 conv mixes across channels
+        self.pointwise = nn.Conv2d(
+            in_channels, out_channels,
+            kernel_size=1, bias=False
+        )
+        self.bn = nn.BatchNorm2d(out_channels)
+        self.relu = nn.ReLU(inplace=True)
+
+    def forward(self, x):
+        x = self.depthwise(x)
+        x = self.pointwise(x)
+        x = self.bn(x)
+        x = self.relu(x)
+        return x
+```
+
+This block is useful for teaching. You can literally see
+how a normal convolution is broken into a depthwise step
+(spatial features in each channel) and a pointwise step
+(channel mixing). That’s the core idea.
+
+### Step 2: MobileNet Block
+
+In practice, MobileNet doesn’t use the minimal version
+above directly. Each stage also includes batch norm and
+ReLU after both depthwise and pointwise convolutions.
+
+Let’s wrap that into a MobileNetBlock:
+
+```python
+class MobileNetBlock(nn.Module):
+    def __init__(self, in_channels, out_channels, stride=1):
+        super(MobileNetBlock, self).__init__()
+        self.block = nn.Sequential(
+            nn.Conv2d(in_channels, in_channels, kernel_size=3,
+                      stride=stride, padding=1, groups=in_channels,
+                      bias=False),
+            nn.BatchNorm2d(in_channels),
+            nn.ReLU(inplace=True),
+
+            nn.Conv2d(in_channels, out_channels,
+                      kernel_size=1, bias=False),
+            nn.BatchNorm2d(out_channels),
+            nn.ReLU(inplace=True),
+        )
+
+    def forward(self, x):
+        return self.block(x)
+```
+
+This is the version that gets stacked over and over again
+to form MobileNet v1.
+
+### Step 3: Width Multiplier (α)
+
+One of the clever tricks in MobileNet is the width
+multiplier (α). It scales the number of channels across
+the whole network. If α < 1, you get a thinner, faster
+model. If α > 1, you get a wider, more accurate one.
+
+```python
+def adjust_channels(channels, alpha):
+    return max(1, int(channels * alpha))
+
+# Example: cut channels in half
+print(adjust_channels(32, alpha=0.5))  # 16
+```
+This simple scaling gives you a family of MobileNets
+instead of a single fixed network.
+
+### Step 4: Resolution Multiplier (ρ)
+
+Unlike α, the resolution multiplier (ρ) isn’t coded
+into the network. Instead, it’s applied to the input image
+size. Smaller inputs → faster network, but less accuracy.
+
+```python
+from torchvision import transforms
+
+rho = 0.75   # resolution multiplier
+base_size = 224
+input_size = int(base_size * rho)
+
+transform = transforms.Compose([
+    transforms.Resize((input_size, input_size)),
+    transforms.ToTensor(),
+])
+```
+
+So α thins the network, while ρ shrinks the inputs. Put
+together, they let you tune MobileNet for whatever device
+you’re running on.
+
+### Step 5: Tiny MobileNet
+
+Now we can put it all together. Here’s a small demo
+version of MobileNet that uses MobileNetBlock and the
+width multiplier:
+
+```python
+class TinyMobileNet(nn.Module):
+    def __init__(self, alpha=1.0, num_classes=1000):
+        super(TinyMobileNet, self).__init__()
+        def c(ch): return adjust_channels(ch, alpha)
+        
+        self.features = nn.Sequential(
+            MobileNetBlock(3, c(32), stride=2),
+            MobileNetBlock(c(32), c(64), stride=1),
+            MobileNetBlock(c(64), c(128), stride=2),
+            nn.AdaptiveAvgPool2d(1),
+        )
+        self.classifier = nn.Linear(c(128), num_classes)
+
+    def forward(self, x):
+        x = self.features(x)
+        x = x.view(x.size(0), -1)
+        return self.classifier(x)
+```
+
+This isn’t the full MobileNet v1, but it demonstrates all
+the important parts: depthwise separable convs, stacked
+blocks, width multipliers, and resolution multipliers.
+
+By building it piece by piece, you can see how MobileNet
+went from a single idea (split convolutions) to a full
+architecture that was efficient enough to run on phones
+and edge devices.
+
+##Reflections and What Came Next
+
+What I like about MobileNet is that it shifted the focus from “accuracy at any
+cost” to “accuracy that fits in your pocket.” It showed that CNNs weren’t just
+for labs with GPUs — they could actually run on real-world devices.
+
+Later versions built on this. MobileNetV2 added inverted residual blocks with
+linear bottlenecks. MobileNetV3 combined these with ideas from neural
+architecture search (NAS). Together, they’ve become the go-to backbones for
+mobile and embedded vision tasks.
+
+For me, MobileNet is a reminder that deep learning isn’t just about getting the
+best accuracy. It’s about finding the right balance of speed, memory, and
+performance for where the model will run.

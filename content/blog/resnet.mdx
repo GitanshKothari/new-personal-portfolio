@@ -1,35 +1,130 @@
 ---
-title: "Understanding ResNet"
-date: "2025-09-13"
-description: "How residual connections solved the vanishing gradient problem."
-tags: ["CNN", "ResNet", "Image Classification"]
+title: "ResNet – Solving the Depth Problem"
+date: "2025-09-14"
+description: "Exploring ResNet, the residual network that introduced skip connections 
+          and made training very deep models possible."
+tags: ["CNN", "ResNet", "Deep Learning History"]
 image: "/blog/resnet/hero.png"
 ---
 
-Residual Networks (ResNets) introduce identity shortcuts so that layers learn residual functions.
 
-## Why residuals help
+## Context & Motivation
 
-Training very deep networks is hard because gradients vanish. Residual blocks learn
-the difference between the input and the desired mapping:
+By 2015, the trend was clear: deeper networks kept winning ImageNet. AlexNet had
+8 layers, VGG stretched that to 16 and 19, and GoogLeNet managed 22 with clever
+modules. But there was a problem: when people tried to go even deeper, training
+actually got worse. Adding more layers sometimes increased the training error,
+which didn’t make sense at first.
 
-$$ H(x) = F(x) + x $$
+ResNet, introduced by Kaiming He and colleagues at Microsoft Research, solved
+this with a simple but brilliant idea: **residual connections** (a.k.a. skip
+connections). Instead of forcing each layer to learn a full transformation,
+they let the layer just learn the difference (the residual). This made training
+much easier and suddenly networks with 50, 101, or even 152 layers became
+possible.
+
+When I first read about ResNet, it stood out because of how minimal the change  
+was, yet how big the impact turned out to be. A single skip connection  
+redefined the way deep networks were built.
+
+## Model Breakdown
+
+The core building block is the **residual block**. Instead of just stacking
+convolutions, ResNet adds the input back to the output: 
+
+Input → [Conv → BN → ReLU → Conv → BN] → Add skip connection → ReLU  
+
+- If input and output dimensions match, the input is added directly.  
+- If they differ, a 1×1 convolution is used to align dimensions.   
+
+<figure className="my-6 text-center">
+  <img src="/blog/resnet/resnet-block.png"
+       alt="ResNet residual block"
+       className="mx-auto rounded-lg shadow-md" />
+  <figcaption className="mt-2 text-sm text-gray-400 italic">
+    A basic ResNet residual block. The input skips over two
+    convolution layers and is added back to the output.
+  </figcaption>
+</figure>
+
+This skip connection allows gradients to flow backward more easily during
+training, solving the vanishing gradient problem.
+
+### Variants
+- **ResNet18/34**: Basic blocks with two 3×3 convolutions.  
+- **ResNet50/101/152**: Bottleneck blocks (1×1 → 3×3 → 1×1 convolutions).  
+
+ResNet152 had 152 layers but was trainable, something that was previously  
+impossible with plain CNNs. It won the 2015 ImageNet competition with a  
+top-5 error rate of 3.57%, surpassing human-level performance.
+
+
+## Why the Design Choices Matter
+
+**Skip connections**  
+These were the magic ingredient. By letting information skip over layers, the
+network could go much deeper without losing the signal.
+
+**Bottleneck design**  
+For deeper versions, the 1×1 convolutions acted like compression layers,
+reducing computation while still keeping depth.
+
+**Normalization**  
+Batch Normalization (BN) was critical here too. Combined with skip connections,
+it made very deep training stable.
+
+---
+
+## Implementation Notes
+
+Here’s a simplified PyTorch version of a basic residual block:
 
 ```python
 import torch
 import torch.nn as nn
 
 class BasicBlock(nn.Module):
-    def __init__(self, in_ch, out_ch):
-        super().__init__()
-        self.net = nn.Sequential(
-            nn.Conv2d(in_ch, out_ch, 3, padding=1), nn.ReLU(),
-            nn.Conv2d(out_ch, out_ch, 3, padding=1)
-        )
+    def __init__(self, in_channels, out_channels, stride=1):
+        super(BasicBlock, self).__init__()
+        self.conv1 = nn.Conv2d(in_channels, out_channels, kernel_size=3, 
+                               stride=stride, padding=1, bias=False)
+        self.bn1 = nn.BatchNorm2d(out_channels)
+        self.relu = nn.ReLU(inplace=True)
+        self.conv2 = nn.Conv2d(out_channels, out_channels, kernel_size=3, 
+                               stride=1, padding=1, bias=False)
+        self.bn2 = nn.BatchNorm2d(out_channels)
+
+        self.shortcut = nn.Sequential()
+        if stride != 1 or in_channels != out_channels:
+            self.shortcut = nn.Sequential(
+                nn.Conv2d(in_channels, out_channels, kernel_size=1, 
+                          stride=stride, bias=False),
+                nn.BatchNorm2d(out_channels)
+            )
 
     def forward(self, x):
-        return torch.relu(self.net(x) + x)
+        out = self.relu(self.bn1(self.conv1(x)))
+        out = self.bn2(self.conv2(out))
+        out += self.shortcut(x)
+        out = self.relu(out)
+        return out
 ```
 
-The skip connection ensures gradients can flow directly to earlier layers.
+What struck me when coding this was how natural the skip connection feels.  
+Adding the input back to the output doesn’t add much complexity but changes  
+training dynamics completely. When I trained a small ResNet on CIFAR10, it  
+converged more reliably than a plain deep CNN of similar size.
 
+## Reflections
+
+What I love about ResNet is how small the change was. Just add a shortcut, and
+suddenly 152-layer networks were trainable. It’s the kind of idea that feels
+obvious in hindsight but was groundbreaking at the time.
+
+The influence of ResNet is everywhere. Modern CNNs, object detectors, and even
+Transformers all use some form of residual connection. It turned out that this
+“simple skip” wasn’t just a hack — it became a core design principle.
+
+ResNet showed me that sometimes progress in deep learning isn’t about making
+things more complicated. It’s about making training easier, so depth and scale
+can do the heavy lifting.

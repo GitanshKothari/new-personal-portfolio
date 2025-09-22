@@ -57,10 +57,18 @@ export default async function BlogPostPage({ params }: Params) {
       <h1 className="mt-4 text-5xl font-bold">{post.title}</h1>
       <p className="mt-4 text-lg text-zinc-300">{post.description}</p>
       <div className="mt-6 flex items-center gap-4 text-sm text-zinc-400">
-        <Image src="/author-avatar.jpg" alt="Author" width={40} height={40} className="h-10 w-10 rounded-full" />
+        <Image src="/blog/background/author-image.jpg" alt="Author" width={40} height={40} className="h-10 w-10 rounded-full" />
         <div>
           <p className="font-medium text-white">Gitansh Kothari</p>
-          <p>{new Date(post.date).toLocaleDateString()}</p>
+          <p>
+            {new Date(post.date).toLocaleDateString()}
+            {post.readingTime && (
+              <>
+                <span className="mx-2">•</span>
+                {post.readingTime}
+              </>
+            )}
+          </p>
         </div>
       </div>
     </div>

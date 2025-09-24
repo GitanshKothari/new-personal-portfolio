@@ -1,5 +1,8 @@
 import { defineDocumentType, makeSource } from 'contentlayer/source-files'
 import rehypePrism from "rehype-prism-plus";
+import rehypeKatex from 'rehype-katex'
+import remarkMath from 'remark-math'
+// import remarkGfm from 'remark-gfm'
 import readingTime from 'reading-time'
 
 export const Post = defineDocumentType(() => ({
@@ -48,7 +51,8 @@ export default makeSource({
   contentDirPath: 'content',
   documentTypes: [Post],
   mdx: {
-    rehypePlugins: [rehypePrism],
+    remarkPlugins: [remarkMath],
+    rehypePlugins: [rehypeKatex as any, rehypePrism as any],
   },
   
 })

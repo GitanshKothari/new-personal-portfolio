@@ -2,12 +2,19 @@
 
 import blog__alexnetMdx from './blog__alexnet.mdx.json' assert { type: 'json' }
 import blog__fastRcnnMdx from './blog__fast-rcnn.mdx.json' assert { type: 'json' }
+import blog__fasterRcnnMdx from './blog__faster-rcnn.mdx.json' assert { type: 'json' }
 import blog__googlenetMdx from './blog__googlenet.mdx.json' assert { type: 'json' }
 import blog__lenetMdx from './blog__lenet.mdx.json' assert { type: 'json' }
+import blog__maskRcnnMdx from './blog__mask-rcnn.mdx.json' assert { type: 'json' }
 import blog__mobilenetMdx from './blog__mobilenet.mdx.json' assert { type: 'json' }
 import blog__rcnnMdx from './blog__rcnn.mdx.json' assert { type: 'json' }
 import blog__resnetMdx from './blog__resnet.mdx.json' assert { type: 'json' }
 import blog__vggMdx from './blog__vgg.mdx.json' assert { type: 'json' }
 import blog__vitMdx from './blog__vit.mdx.json' assert { type: 'json' }
+import blog__yolov1Mdx from './blog__yolov1.mdx.json' assert { type: 'json' }
+import blog__yolov2Mdx from './blog__yolov2.mdx.json' assert { type: 'json' }
+import blog__yolov3Mdx from './blog__yolov3.mdx.json' assert { type: 'json' }
+import blog__yolov5Mdx from './blog__yolov5.mdx.json' assert { type: 'json' }
+import blog__yolov8Mdx from './blog__yolov8.mdx.json' assert { type: 'json' }
 
-export const allPosts = [blog__alexnetMdx, blog__fastRcnnMdx, blog__googlenetMdx, blog__lenetMdx, blog__mobilenetMdx, blog__rcnnMdx, blog__resnetMdx, blog__vggMdx, blog__vitMdx]
+export const allPosts = [blog__alexnetMdx, blog__fastRcnnMdx, blog__fasterRcnnMdx, blog__googlenetMdx, blog__lenetMdx, blog__maskRcnnMdx, blog__mobilenetMdx, blog__rcnnMdx, blog__resnetMdx, blog__vggMdx, blog__vitMdx, blog__yolov1Mdx, blog__yolov2Mdx, blog__yolov3Mdx, blog__yolov5Mdx, blog__yolov8Mdx]

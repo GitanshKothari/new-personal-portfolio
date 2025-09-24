@@ -1,0 +1,471 @@
+---
+title: "YOLOv3"
+date: "2025-09-23"
+description: "YOLOv3 built on YOLOv2 with a deeper backbone (Darknet-53), multi-scale detection, and independent logistic classifiers, pushing accuracy while keeping real-time speed."
+tags: ["Object Detection", "YOLOv3", "Darknet-53", "Deep Learning", "Real-Time Detection"]
+image: "/blog/yolov3/hero.png"
+---
+
+## Context, Motivation, and Problems Solved
+
+YOLOv2 fixed many of the problems from YOLOv1 by introducing anchors, a stronger backbone, and
+multi-scale training. It was faster and more accurate, and YOLO9000 showed that detection could be
+scaled to thousands of classes. But even with these improvements, there were still a few important
+limitations.
+
+The first issue was with **small object detection**. YOLOv2 introduced a passthrough layer to bring
+higher-resolution features into the detection head, but it was still not enough. Small objects like
+birds, bottles, or distant traffic signs often went undetected because the grid was too coarse.
+
+The second issue was with **classification**. YOLOv2 used a softmax across classes, which forced
+each bounding box to pick exactly one category. But in real-world data, labels can overlap (for
+example, “dog” and “animal”). A softmax also assumes classes are mutually exclusive, which is not
+always the case.
+
+The third issue was with the **backbone depth**. Darknet-19 was efficient, but it was not as deep
+or powerful as modern feature extractors like ResNet. This limited YOLOv2’s ability to learn rich,
+multi-level representations.
+
+YOLOv3, introduced in 2018, was designed to address these problems. It introduced a new backbone
+(Darknet-53) with residual connections, used **multi-scale detection** inspired by feature pyramid
+networks, and replaced softmax classification with **independent logistic classifiers**. These
+changes made YOLOv3 much stronger on small objects and multi-label scenarios, while still running
+at real-time speeds.
+
+## Architecture Breakdown
+
+### Step 1: Backbone (Darknet-53)
+
+YOLOv3 replaced the Darknet-19 backbone from YOLOv2 with a much deeper and more powerful network
+called **Darknet-53**. This was a critical upgrade that gave YOLOv3 its boost in accuracy.
+
+---
+
+#### Darknet-53 design
+
+Darknet-53 has **53 convolutional layers** organized with **residual connections**, very similar to
+ResNet. The key design choices:
+
+- Only 3×3 and 1×1 convolutions, no fully connected layers.  
+- Batch normalization and Leaky ReLU after every convolution.  
+- Residual (skip) connections to ease training of deeper networks.  
+- Global average pooling for classification when pretrained on ImageNet.  
+
+---
+
+#### Comparison with Darknet-19
+
+On ImageNet classification:
+
+- Darknet-19: 72.9% top-1 accuracy, 171 FPS.  
+- Darknet-53: 77.2% top-1 accuracy, 78 FPS.  
+
+This meant YOLOv3 traded some speed for significantly richer features. The residual connections
+helped the deeper backbone avoid vanishing gradients and capture more semantic detail.
+
+---
+
+#### Example feature map flow
+
+For a 416 × 416 input:
+
+- After initial conv + pooling → 208 × 208 feature map.  
+- Deeper layers reduce resolution progressively → 104 × 104, 52 × 52, 26 × 26, 13 × 13.  
+- These multi-scale feature maps are reused later in the detection head.
+
+---
+
+#### Why this matters
+
+YOLOv3’s backbone was now competitive with ResNet-50 and ResNet-101 in accuracy, while still being
+much faster. This gave YOLOv3 the strong foundation it needed to improve detection without losing
+its signature speed advantage.
+
+### Step 2: Multi-Scale Detection
+
+One of the most important changes in YOLOv3 was adding **multi-scale detection**, inspired by
+Feature Pyramid Networks (FPN). Instead of detecting objects only at the final feature map
+(13 × 13), YOLOv3 predicted boxes at **three different scales**: 13 × 13, 26 × 26, and 52 × 52.
+
+---
+
+#### How it works
+
+- **13 × 13 feature map** (stride 32): best for large objects.  
+- **26 × 26 feature map** (stride 16): handles medium objects.  
+- **52 × 52 feature map** (stride 8): captures small objects.  
+
+Each scale predicts boxes using its own set of anchors. The feature maps are built by combining
+higher-level semantic features with lower-level fine-grained features, giving the network a pyramid
+of representations.
+
+---
+
+#### Example with 416 × 416 input
+
+- At 13 × 13 scale: each grid cell covers 32 × 32 pixels.  
+- At 26 × 26 scale: each grid cell covers 16 × 16 pixels.  
+- At 52 × 52 scale: each grid cell covers 8 × 8 pixels.  
+
+So a small object that might have been lost in YOLOv2’s 13 × 13 map could now be represented across
+multiple cells in the 52 × 52 map.
+
+---
+
+#### Output at each scale
+
+For each grid cell and anchor, YOLOv3 predicts:
+
+$
+(x, y, w, h, objectness) + \\text\{C class scores\}
+$
+
+- COCO dataset (C = 80, B = 3 anchors per scale):  
+  Output per scale = S × S × (3 × (5 + 80))  
+
+- At 13 × 13: 13 × 13 × 255 = 43,845 values.  
+- At 26 × 26: 26 × 26 × 255 = 173,940 values.  
+- At 52 × 52: 52 × 52 × 255 = 695,520 values.  
+
+Together, these outputs allow YOLOv3 to detect objects at all scales.
+
+---
+
+#### Why this matters
+
+YOLOv2 struggled with small objects because its detection happened only at a coarse 13 × 13 grid.
+By introducing predictions at 26 × 26 and 52 × 52, YOLOv3 greatly improved recall for smaller
+objects while maintaining performance on medium and large ones.
+
+### Step 3: Predictions per Anchor Box
+
+YOLOv3 kept the anchor-based prediction idea from YOLOv2 but made two key improvements:  
+1. **Independent logistic classifiers** instead of softmax.  
+2. Better parameterization for objectness and class scores.
+
+---
+
+#### Predictions per anchor
+
+For each anchor at each grid cell, YOLOv3 predicts:
+
+- $t_x, t_y, t_w, t_h$: offsets for the bounding box.  
+- $t_o$: objectness score.  
+- $t_c$: C class scores (logits).  
+
+These are transformed into usable values as follows:
+
+$
+b_x = \sigma(t_x) + c_x, \quad b_y = \sigma(t_y) + c_y
+$
+
+$
+b_w = p_w \cdot e^{t_w}, \quad b_h = p_h \cdot e^{t_h}
+$
+
+$
+\text{objectness} = \sigma(t_o)
+$
+
+$
+\text{class probability for class i} = \sigma(t_{c_i})
+$
+
+---
+
+#### Logistic regression instead of softmax
+
+YOLOv2 used a softmax across all classes, forcing each prediction to belong to exactly one class.
+But in the real world, labels can overlap (for example, a “dog” is also an “animal”). Softmax is
+too restrictive in such cases.
+
+YOLOv3 switched to **independent logistic classifiers** for each class. That means each class gets
+its own binary prediction:
+
+$
+\Pr(\text{class i} \mid \text{object}) = \sigma(t_{c_i})
+$
+
+This allows multi-label predictions and makes the classification task more flexible.
+
+---
+
+#### Why this matters
+
+This change made YOLOv3 better at handling overlapping categories and reduced classification errors
+caused by softmax competition. Combined with anchors and multi-scale detection, it gave YOLOv3 a
+much more reliable prediction head than its predecessors.
+
+
+### Step 4: Output Tensor Sizes
+
+Now that we know YOLOv3 predicts at three scales (13 × 13, 26 × 26, 52 × 52) and uses 3 anchors per
+scale, let’s look at the full output tensor sizes.
+
+---
+
+#### Formula
+
+For each scale, the prediction tensor has shape:
+
+$
+S \times S \times (B \times (5 + C))
+$
+
+where:  
+- $S$: grid size (13, 26, or 52).  
+- $B$: number of anchors per scale (3).  
+- $C$: number of classes (20 for VOC, 80 for COCO).  
+- 5 values = (x, y, w, h, objectness).  
+
+---
+
+#### Example: COCO (80 classes)
+
+Each anchor predicts:  
+$
+5 + 80 = 85 \; \text{values}
+$
+
+With 3 anchors per grid cell:  
+$
+3 \times 85 = 255 \; \text{values per cell}
+$
+
+So:  
+- At 13 × 13: 13 × 13 × 255 = 43,845 values.  
+- At 26 × 26: 26 × 26 × 255 = 173,940 values.  
+- At 52 × 52: 52 × 52 × 255 = 695,520 values.  
+
+Total = **913,305 values per image**.
+
+---
+
+#### Example: Pascal VOC (20 classes)
+
+Each anchor predicts:  
+$
+5 + 20 = 25
+$
+
+With 3 anchors per cell:  
+$
+3 \times 25 = 75
+$
+
+So:  
+- At 13 × 13: 13 × 13 × 75 = 12,675 values.  
+- At 26 × 26: 26 × 26 × 75 = 50,700 values.  
+- At 52 × 52: 52 × 52 × 75 = 202,800 values.  
+
+Total = **266,175 values per image**.
+
+---
+
+#### Why this matters
+
+YOLOv3 outputs a **lot more predictions** than YOLOv1 or YOLOv2, but in a structured way: three
+different scales, each with anchors tailored to object sizes. This dramatically improved recall,
+especially for small objects, while keeping computation efficient enough for real-time inference.
+
+
+
+## Training Procedure
+
+YOLOv3 followed a similar training pipeline to YOLOv2 but introduced a few key differences: a
+deeper backbone, logistic classifiers for classes, and stronger emphasis on multi-scale detection.
+
+---
+
+### Step 1: Pretraining on ImageNet
+
+As with YOLOv2, the backbone (Darknet-53) was first pretrained on ImageNet for classification.  
+
+- Input: 256 × 256, later fine-tuned at 416 × 416.  
+- Top-1 accuracy: 77.2%.  
+- Pretraining gave the network a strong initialization, ensuring stable detection training.  
+
+---
+
+### Step 2: Detection fine-tuning
+
+After pretraining, the backbone was fine-tuned on detection datasets (Pascal VOC, COCO).  
+
+- Input resolution: default 416 × 416, but varied with multi-scale training.  
+- Optimizer: SGD with momentum (0.9), weight decay (0.0005).  
+- Learning rate schedule: warmup at 0.001, decayed stepwise during training.  
+- Batch size: commonly 64.  
+
+---
+
+### Step 3: Loss function
+
+YOLOv3’s loss function had three parts, similar to YOLOv2 but adapted for logistic classifiers:  
+
+1. **Localization loss**  
+   - Squared error for offsets $(t_x, t_y, t_w, t_h)$.  
+   - Each anchor responsible for the object with the highest IoU.  
+
+2. **Objectness loss**  
+   - Binary cross-entropy loss for objectness:  
+   $
+   L_{obj} = - \big[ y \log(\sigma(t_o)) + (1-y)\log(1-\sigma(t_o)) \big]
+   $  
+   where $y = 1$ if object is present, else 0.  
+
+3. **Classification loss**  
+   - Binary cross-entropy for each class, since YOLOv3 uses independent logistic classifiers:  
+   $
+   L_{cls} = \sum_{c=1}^C - \big[ y_c \log(\sigma(t_{c})) + (1-y_c)\log(1-\sigma(t_c)) \big]
+   $  
+
+The total loss was the sum of these three components.  
+
+---
+
+### Step 4: Multi-scale training
+
+Just like YOLOv2, YOLOv3 trained on multiple resolutions to make it robust at inference.  
+
+- Every 10 batches, input resolution was randomly picked from 320 to 608 in steps of 32.  
+- This allowed the same weights to work at different trade-offs between speed and accuracy.  
+
+---
+
+### Why this matters
+
+YOLOv3’s training procedure was carefully designed to maximize flexibility. Pretraining gave strong
+features, logistic classification fixed YOLOv2’s issues with softmax, and multi-scale training
+ensured robustness across different input sizes. This made YOLOv3 significantly more accurate while
+still retaining real-time performance.
+
+
+## Implementation Notes
+
+YOLOv3 is more complex than YOLOv1 and YOLOv2 because it predicts at three different scales, but
+the logic is the same: anchors + offsets → bounding boxes. Let’s break it down step by step.
+
+---
+
+### Step 1: Output tensor with 3 scales
+
+At each scale (13 × 13, 26 × 26, 52 × 52), YOLOv3 predicts using **3 anchors per cell**.  
+Each anchor outputs:
+
+$
+(x, y, w, h, objectness) + C \; \text{class scores}
+$
+
+So for COCO (C = 80):
+
+- Per anchor: 85 values.  
+- Per cell: 3 × 85 = 255 values.  
+
+That gives:
+
+- 13 × 13 × 255 = 43,845 values.  
+- 26 × 26 × 255 = 173,940 values.  
+- 52 × 52 × 255 = 695,520 values.  
+
+Total = **913,305 values per image**.
+
+---
+
+### Step 2: Decoding predictions
+
+The outputs are decoded similarly to YOLOv2, but applied at three scales.  
+
+For each anchor at cell (c_x, c_y):
+
+$
+b_x = \frac{1}{S}(\sigma(t_x) + c_x), \quad b_y = \frac{1}{S}(\sigma(t_y) + c_y)
+$
+
+$
+b_w = \frac{1}{W}(p_w \cdot e^{t_w}), \quad b_h = \frac{1}{H}(p_h \cdot e^{t_h})
+$
+
+$
+\text{objectness} = \sigma(t_o)
+$
+
+$
+\text{class probability} = \sigma(t_{c_i})
+$
+
+- S = grid size (13, 26, or 52).  
+- W, H = input image dimensions.  
+- Anchors are chosen separately for each scale (small anchors for 52 × 52, large for 13 × 13).  
+
+---
+
+### Step 3: Training loop
+
+The training loop is almost the same as YOLOv2, with the addition of multi-scale predictions.  
+
+for epoch in range(num_epochs):
+    for batch_idx, (images, targets) in enumerate(dataloader):
+        if batch_idx % 10 == 0:
+            new_dim = random.choice([320,352,384,416,448,480,512,544,576,608])
+            dataloader.set_input_dim(new_dim)
+
+        preds_13, preds_26, preds_52 = model(images)
+
+        loss_13 = criterion(preds_13, targets)
+        loss_26 = criterion(preds_26, targets)
+        loss_52 = criterion(preds_52, targets)
+
+        total_loss = loss_13 + loss_26 + loss_52
+        total_loss.backward()
+        optimizer.step()
+        optimizer.zero_grad()
+
+---
+
+### Why this matters
+
+The multi-scale outputs and logistic classification made YOLOv3’s implementation more complicated
+than earlier YOLO versions. But once broken down, the logic is consistent: anchors are decoded into
+bounding boxes, predictions are trained across multiple scales, and all outputs are combined during
+loss computation. This design gave YOLOv3 its strength without abandoning real-time performance.
+
+
+## Limitations
+
+YOLOv3 was a big leap forward compared to YOLOv2, but it still had some limitations. The first
+issue was that its **accuracy on small objects** still lagged behind two-stage detectors like Faster
+R-CNN with FPN. The 52 × 52 scale helped, but objects smaller than 16 × 16 pixels were often missed
+or poorly localized.
+
+Another limitation was the **model size and speed**. Darknet-53 was much deeper than Darknet-19,
+which improved accuracy but reduced FPS. On a Titan X GPU, YOLOv2 ran at about 67 FPS, while
+YOLOv3 dropped closer to 45 FPS. This was still real-time, but the trade-off meant YOLOv3 wasn’t as
+lightweight for mobile or embedded systems.
+
+A third limitation was that YOLOv3 was still **anchor-based**, meaning it required k-means anchor
+clustering and hand-tuned priors. This made the system more complex and less adaptive compared to
+later anchor-free detectors like CenterNet or FCOS.
+
+Finally, YOLOv3 did not include tricks like attention mechanisms or advanced feature fusion, which
+would later become common in YOLOv4 and beyond.
+
+---
+
+## Reflections
+
+For me, YOLOv3 feels like the first “mature” YOLO. Where YOLOv1 was raw and YOLOv2 was polished,
+YOLOv3 hit the sweet spot: strong backbone, multi-scale detection, logistic classifiers, and
+real-time performance. It showed that one-stage detectors could seriously compete with two-stage
+models, not just in speed but also in accuracy.
+
+YOLOv3 also influenced the field in subtle but important ways. Its use of residual connections
+through Darknet-53 mirrored the success of ResNets. Its multi-scale detection popularized ideas
+similar to FPNs in the single-stage world. And its switch to independent logistic classifiers
+foreshadowed modern detectors that handle multi-label outputs.
+
+In many ways, YOLOv3 set the template for all YOLO versions that followed. YOLOv4 and YOLOv5 built
+on these ideas, adding more tricks and optimizations, but the core blueprint — multi-scale anchors,
+residual backbones, and logistic classification — came from YOLOv3. That’s why it’s remembered as
+the version where YOLO went from being “fast and fun” to being **state of the art**.
+
+  

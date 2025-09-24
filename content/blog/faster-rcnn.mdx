@@ -1,0 +1,443 @@
+---
+title: "Faster R-CNN"
+date: "2025-09-23"
+description: "Faster R-CNN replaced Selective Search with a Region Proposal Network, making object detection pipelines fully end-to-end trainable and much faster."
+tags: ["Object Detection", "Faster R-CNN", "Deep Learning", "CNN"]
+image: "/blog/faster-rcnn/hero.png"
+---
+
+
+## Context & Motivation
+
+By the time Fast R-CNN came around, object detection was already way better than the early days
+of R-CNN. We no longer had to run a ConvNet separately for each region proposal, which was a huge
+speed boost. But there was still one major bottleneck left in the pipeline: how we generated those
+region proposals in the first place.
+
+Fast R-CNN relied on Selective Search to generate ~2000 candidate boxes per image. While this was
+better than brute force sliding windows, it was still very slow. On top of that, Selective Search
+was not a neural network. It was a hand-engineered algorithm with no learnable parameters, which
+meant the network had no way of improving this stage during training. So, even though Fast R-CNN
+was faster than R-CNN, it still could not be considered "real-time."
+
+The authors of Faster R-CNN realized that if region proposal generation is the bottleneck, then
+the logical next step is to get rid of Selective Search entirely. Why not make the region proposal
+process itself part of the neural network? That way, the proposals could be learned directly from
+data, and everything could be trained end-to-end.
+
+This idea gave birth to the Region Proposal Network (RPN). The RPN slid over the feature maps from
+the backbone CNN, and for each spatial location it predicted potential bounding boxes (called
+"anchors") along with objectness scores. In one shot, the model could propose regions and also
+refine their coordinates, all while sharing computation with the main detector.
+
+This was the breakthrough of Faster R-CNN. It took the two-stage detection pipeline (proposals
++ classification) and made both parts deep learning-based. The result was a system that was not
+only much faster than Fast R-CNN but also more accurate, since the region proposals were now
+learned features rather than handcrafted heuristics.
+
+## Problem Faster R-CNN Solved
+
+R-CNN and Fast R-CNN had already made object detection much more practical compared to the early
+days. But both of them still depended on one non-deep-learning component: Selective Search for
+region proposals. And that was a serious limitation.
+
+The first problem was **speed**. Selective Search took almost 2 seconds per image just to generate
+candidate boxes. Even if the detection network was fast, you were stuck waiting for proposals to
+be produced. This meant Fast R-CNN could never be considered real-time.
+
+The second problem was **lack of learning**. Selective Search is a hand-crafted algorithm that
+groups pixels into regions based on low-level cues like color, edges, and texture. It has no
+trainable weights, so the network cannot improve this stage during training. No matter how much
+data you throw at it, the proposal step stays the same.
+
+The third problem was **pipeline inefficiency**. With Selective Search running outside the network,
+object detection felt like a patchwork of different pieces rather than one unified system. Some
+parts were deep learning-based, while others were still old-school computer vision algorithms.
+
+Faster R-CNN solved all three issues by introducing the Region Proposal Network (RPN). Instead of
+relying on an external algorithm, the RPN could directly generate proposals from feature maps
+produced by the backbone CNN. This not only made the process faster but also fully learnable and
+integrated into the detection pipeline.
+
+
+## Architecture Breakdown
+
+At a high level, Faster R-CNN still follows the two stage detection approach: first generate region
+proposals, then classify them. The major change compared to Fast R-CNN is that the proposal stage
+is no longer handled by an external algorithm like Selective Search. Instead, a new module called
+the Region Proposal Network or RPN is introduced. Let us go through the first two steps in detail.
+
+---
+
+### Step 1: Backbone CNN
+
+The first step is to extract features from the image using a backbone convolutional neural network.
+In the original Faster R-CNN paper, the authors used VGG16, but other networks such as ResNet have
+also been used in later work. The input image is usually resized so that its shorter side is around
+600 pixels, which keeps computation under control while preserving important details.
+
+The image is passed through the convolutional layers of the backbone, which gradually build up
+useful representations. Early layers capture simple features like edges and textures, while deeper
+layers represent shapes and higher level patterns. The result is a feature map that encodes the
+entire image in a spatially structured way.
+
+A key point is that the backbone is run only once per image. This was already true in Fast R-CNN,
+and Faster R-CNN continues this design. All later stages, including the proposal generation and the
+final classification, use this same shared feature map. This reuse of computation is one of the
+main reasons these models are so much faster than the original R-CNN, which had to run the network
+thousands of times for each region proposal.
+
+### Step 2: Region Proposal Network
+
+The Region Proposal Network is the key innovation in Faster R-CNN. Instead of using Selective
+Search, the RPN generates candidate regions directly from the backbone feature map. A small
+three by three sliding window is applied across the feature map, and at each location it predicts
+a set of **anchors**. Anchors are boxes of predefined scales and aspect ratios. For each anchor,
+the RPN outputs two things: an objectness score indicating whether it contains an object or not,
+and a set of box coordinate adjustments that refine the anchor’s position and size.
+
+Since anchors are placed at every spatial location with multiple shapes and sizes, the RPN
+generates thousands of candidate boxes per image. Many of these boxes overlap heavily, which
+would be wasteful to process. To reduce redundancy, the network applies **Non Maximum
+Suppression**. The idea is simple: keep the highest scoring box, then discard any other boxes
+that overlap too much with it based on an Intersection over Union threshold. This process is
+repeated until only a diverse set of strong proposals remain.
+
+In the original paper, around two thousand top proposals are kept after NMS and passed to the
+next stage. The crucial detail is that the RPN shares the same convolutional features as the
+detector, so proposal generation comes almost for free once the backbone has been run. This
+integration makes the entire pipeline faster and fully learnable, solving the bottleneck that
+limited Fast R-CNN.
+
+### Step 3: Anchors
+
+Anchors are one of the most important ideas introduced with Faster R-CNN. They are a way to let
+the RPN predict objects of different sizes and shapes without having to hardcode them. The idea
+is simple: at every spatial location of the feature map, we place a set of predefined boxes with
+different scales and aspect ratios. These boxes are called anchors.
+
+For example, suppose we define three scales (small, medium, large) and three aspect ratios (1:1,
+1:2, 2:1). This gives nine anchors per location. If the feature map is 60 by 40, that is already
+21,600 anchors in a single image. Each anchor acts as a reference box. The RPN does not directly
+predict bounding boxes from scratch. Instead, it predicts two things for every anchor: whether it
+contains an object, and how the anchor should be shifted and resized to better fit that object.
+
+During training, each anchor is labeled as positive or negative depending on how well it overlaps
+with the ground truth boxes. Anchors with Intersection over Union above a threshold (usually 0.7)
+are considered positive. Anchors with IoU below a threshold (often 0.3) are considered negative.
+Anchors that fall in between may be ignored. This labeling guides the RPN to learn which anchors
+tend to cover objects and how to refine them. The regression branch then learns to predict small
+coordinate adjustments that move the anchor closer to the ground truth box.
+
+Anchors solve the scale and aspect ratio problem in a neat way. Instead of requiring the network
+to guess box sizes, we provide a diverse set of starting points and let the network learn how to
+tweak them. This makes the RPN flexible enough to handle objects of many different shapes within
+a single unified system.
+
+---
+
+### Step 4: RoI Pooling
+
+Once the RPN proposes regions, the next step is to extract features from those regions so that
+they can be classified and refined. This is where Region of Interest Pooling, or RoI Pooling,
+comes into play. The challenge is that proposals can have wildly different sizes. Neural networks
+need fixed size inputs for fully connected layers, so we need a way to convert variable sized
+regions into fixed size feature maps.
+
+Here is how RoI Pooling works. First, each region proposal is mapped from the original image
+coordinates onto the feature map coordinates. This tells us which part of the feature map
+corresponds to the proposed box. Next, this region is divided into a fixed grid, for example
+seven by seven cells. Each cell can have different height and width depending on the proposal
+size. Finally, max pooling is applied within each cell, picking the strongest activation. The
+result is a fixed size feature map, seven by seven in this example, regardless of the original
+proposal dimensions.
+
+The key idea is that RoI Pooling standardizes all proposals to the same size representation. This
+lets the next stage, the detection head, process them uniformly through fully connected layers
+without having to worry about varying input shapes. It is efficient because it reuses the shared
+backbone feature map rather than cropping and resizing raw pixels. The tradeoff is that the
+quantization during pooling can sometimes lose spatial precision, but overall it was a major
+advance that made Fast R-CNN and Faster R-CNN practical.
+
+### Step 5: Detection Head
+
+After RoI Pooling, each proposed region has been converted into a fixed size feature map, for
+example seven by seven by 512 if VGG16 is the backbone. The question now is: how do we turn these
+features into final object detections? This is the job of the detection head.
+
+The pooled features are flattened and passed through fully connected layers. These layers act as
+a classifier and a regressor at the same time. The classifier outputs a probability distribution
+over all the object classes plus one extra background class. For instance, if we are detecting
+20 object categories, the classifier predicts 21 probabilities in total. The regressor predicts
+four values per class that represent bounding box adjustments: the offsets in x and y along with
+the changes in width and height.
+
+The combination of classification and regression makes the detection head powerful. The
+classification branch decides what the object is, while the regression branch fine tunes the
+coordinates to make the bounding box tighter around the object. Since all proposals pass through
+this same head, the system can efficiently handle multiple categories within one unified model.
+
+---
+
+### Step 6: Training Procedure
+
+Training Faster R-CNN is more complex than training a single network because it has two major
+components: the Region Proposal Network and the detection head. Both components share the same
+backbone, so the training has to balance their objectives. The authors proposed a multi task loss
+that combines four terms: classification and regression losses for the RPN, and classification and
+regression losses for the detection head.
+
+For the RPN, the classification loss is a binary cross entropy that decides whether an anchor is
+object or background. The regression loss is usually a smooth L1 loss that measures how well the
+predicted box coordinates align with the ground truth. For the detection head, the classification
+loss is a softmax cross entropy across all object classes, and the regression loss again adjusts
+the bounding box for each class.
+
+There are two strategies for training. In alternating training, the RPN and detection head are
+trained in separate stages that are repeated until convergence. In approximate joint training,
+both modules are trained together with shared convolutional layers. Alternating training was used
+in the original paper because it was easier to implement, while joint training became common later
+as frameworks improved. The key point is that everything, from proposals to classification, can be
+optimized within a single deep learning pipeline.
+
+
+## Key Innovations
+
+Faster R-CNN was such an important step because it introduced several new ideas that changed how
+object detection was approached. Here are the main innovations that made it stand out.
+
+**Region Proposal Network (RPN)**  
+The biggest breakthrough was replacing Selective Search with the RPN. Instead of using a slow,
+handcrafted algorithm, the network itself could now learn to generate proposals. This made the
+entire detection pipeline fully deep learning based and end to end trainable. It also cut down
+computation time dramatically, moving us closer to real time detection.
+
+**Anchors**  
+Anchors solved the problem of scale and aspect ratio in a very clever way. By placing multiple
+boxes of different sizes and shapes at each spatial location, the network was able to handle
+objects ranging from tall and thin to short and wide. This idea of anchors went on to influence
+many later detectors such as SSD, YOLOv2, and RetinaNet.
+
+**Feature Sharing**  
+Another key idea was that the RPN and the detection head share the same backbone convolutional
+features. This means we do not need to recompute expensive feature maps for proposals and
+classification separately. It saves computation and makes the system efficient, while also letting
+both parts of the model benefit from the same learned representations.
+
+**End to End Training**  
+By integrating proposals into the network, Faster R-CNN became one of the first object detectors
+that could be trained almost completely end to end. The same dataset and loss functions guided
+both the proposal stage and the classification stage. This eliminated the disconnect between
+handcrafted methods and neural networks and set a new standard for detection systems.
+
+Together, these innovations made Faster R-CNN not just an incremental improvement but a major leap
+forward. It showed that the entire detection pipeline could be unified within a single deep
+learning model and opened the door for even faster and more accurate detectors in the years that
+followed.
+
+## Implementation Notes
+
+When reading papers, the architecture can feel abstract. Implementation notes help bridge the gap
+between theory and practice. Below are detailed notes, written as if we were coding the main steps
+of Faster R-CNN in Python and PyTorch.
+
+---
+
+### Step 1: Input and Backbone
+
+Images are usually resized so that the shorter side is around 600 pixels. This keeps object details
+visible but keeps computation reasonable. The resized image is normalized and batched before being
+fed to the backbone CNN, such as VGG16 or ResNet.
+
+```python
+import torchvision.transforms as T
+from torchvision.models import vgg16
+
+# Preprocessing pipeline
+transform = T.Compose([
+    T.Resize(600),                 # resize shorter side to 600 px
+    T.ToTensor(),                  # convert to tensor
+    T.Normalize(mean=[0.485, 0.456, 0.406],
+                std=[0.229, 0.224, 0.225])  # normalize like ImageNet
+])
+
+# Backbone network (remove classification head)
+backbone = vgg16(pretrained=True).features
+
+The output of the backbone is a feature map, typically with reduced spatial dimensions. For a
+600×1000 input image, the feature map might be around 38×63 with 512 channels in VGG16.
+
+### Step 2: Region Proposal Network (RPN)
+
+The RPN applies a small convolutional layer over the backbone feature map. At each location, it
+predicts objectness scores and bounding box refinements for multiple anchors.
+
+```python
+import torch.nn as nn
+
+class RPN(nn.Module):
+    def __init__(self, in_channels, num_anchors):
+        super().__init__()
+        self.conv = nn.Conv2d(in_channels, 512, 3, padding=1)
+        self.cls_layer = nn.Conv2d(512, num_anchors * 2, 1)  # object vs background
+        self.reg_layer = nn.Conv2d(512, num_anchors * 4, 1)  # box deltas (x, y, w, h)
+
+    def forward(self, x):
+        x = nn.ReLU()(self.conv(x))
+        objectness = self.cls_layer(x)  # shape: [B, num_anchors*2, H, W]
+        bbox_deltas = self.reg_layer(x) # shape: [B, num_anchors*4, H, W]
+        return objectness, bbox_deltas
+```
+
+### Step 3: Anchors
+
+Anchors are predefined boxes at each feature map location. Suppose we use 3 scales and 3 aspect
+ratios. This gives 9 anchors per location. For a 38×63 feature map, that means 21,546 anchors per
+image.
+
+```python
+import itertools
+import torch
+
+def generate_anchors(base_size=16, scales=[128, 256, 512],
+                     ratios=[0.5, 1.0, 2.0], feat_h=38, feat_w=63, stride=16):
+    anchors = []
+    for y, x in itertools.product(range(feat_h), range(feat_w)):
+        center_x, center_y = x * stride, y * stride
+        for scale in scales:
+            for ratio in ratios:
+                w = scale * (ratio ** 0.5)
+                h = scale / (ratio ** 0.5)
+                anchors.append([center_x - w/2, center_y - h/2,
+                                center_x + w/2, center_y + h/2])
+    return torch.tensor(anchors)  # shape: [N, 4]
+```
+
+During training, anchors are labeled positive or negative based on IoU with ground truth boxes.
+
+### Step 4: Non Maximum Suppression (NMS)
+
+After applying the predicted deltas to anchors, many boxes overlap. NMS filters them down.
+
+```python
+from torchvision.ops import nms
+
+# boxes: [N, 4], scores: [N]
+keep = nms(boxes, scores, iou_threshold=0.7)
+proposals = boxes[keep][:2000]  # keep top 2000 proposals
+```
+
+### Step 5: RoI Pooling
+
+Each proposal is mapped to the feature map and converted into a fixed size representation. In the
+original paper, a 7×7 output was common.
+
+```python
+from torchvision.ops import RoIPool
+
+roi_pool = RoIPool(output_size=(7, 7), spatial_scale=1/16)  # stride=16
+pooled_features = roi_pool(feature_map, proposals)  # [num_proposals, C, 7, 7]
+```
+
+### Step 6: Detection Head
+
+The pooled features are flattened and passed through fully connected layers. One branch performs
+classification, and the other performs bounding box regression.
+
+```python
+class DetectionHead(nn.Module):
+    def __init__(self, in_features, num_classes):
+        super().__init__()
+        self.fc1 = nn.Linear(in_features, 4096)
+        self.fc2 = nn.Linear(4096, 4096)
+        self.cls = nn.Linear(4096, num_classes)      # classification
+        self.reg = nn.Linear(4096, num_classes * 4)  # regression
+
+    def forward(self, x):
+        x = x.flatten(1)
+        x = nn.ReLU()(self.fc1(x))
+        x = nn.ReLU()(self.fc2(x))
+        return self.cls(x), self.reg(x)
+```
+
+### Step 7: Training Details
+
+Training uses a multi task loss. For the RPN, we use binary classification (object vs background)
+and bounding box regression. For the detection head, we use softmax classification across all
+classes and bounding box regression per class.
+
+```python
+import torch.nn.functional as F
+
+def rpn_loss(objectness_pred, objectness_gt,
+             bbox_pred, bbox_gt):
+    cls_loss = F.cross_entropy(objectness_pred, objectness_gt)
+    reg_loss = F.smooth_l1_loss(bbox_pred, bbox_gt)
+    return cls_loss + reg_loss
+```
+
+The original paper trained using alternating optimization: first train the RPN, then train the
+detector, then fine tune both together. Later implementations usually do joint training, since
+modern frameworks can handle the complexity more easily.
+
+These steps together form a complete picture of how Faster R-CNN can be implemented in practice.
+Every part, from preprocessing to anchors to RoI Pooling, connects back to the concepts explained
+in the paper. Writing the code this way helps demystify the pipeline and makes it easier to see
+how the pieces fit together.
+
+### Limitations
+
+Even though Faster R-CNN was a big leap forward, it was not perfect. The first limitation was
+speed. While the RPN made proposal generation much faster than Selective Search, the pipeline was
+still two stage: proposals first, classification second. This meant it was not yet real time, with
+inference speeds around 5 frames per second on VGG16. Later one stage detectors like YOLO and SSD
+were created specifically to address this speed gap.
+
+Another limitation was related to **RoI Pooling**. The quantization step, where proposal
+coordinates are mapped to fixed size grids, caused small misalignments. For small objects in
+particular, this could hurt accuracy. This issue was later solved in Mask R-CNN with RoI Align,
+which avoids quantization altogether.
+
+Finally, Faster R-CNN remained computationally heavy. Even though it reused features, training and
+inference still required significant GPU memory and processing power. Deploying it in resource
+limited environments such as mobile or embedded systems was not practical. This challenge
+motivated the development of lighter architectures such as MobileNet SSD.
+
+---
+
+### Impact
+
+Despite these drawbacks, the impact of Faster R-CNN was massive. It set a new standard for object
+detection and introduced concepts that shaped nearly all detectors that came after it. The Region
+Proposal Network became the foundation for many future systems, and the anchor mechanism was
+adopted widely in SSD, YOLOv2, and RetinaNet.
+
+Faster R-CNN also paved the way for **Mask R-CNN**, which extended the framework to perform both
+detection and instance segmentation. By replacing RoI Pooling with RoI Align and adding a mask
+prediction branch, Mask R-CNN built directly on the Faster R-CNN design. In many ways, Faster
+R-CNN showed that you could unify all parts of the pipeline under one deep network, and this idea
+has since been expanded to segmentation, keypoint detection, and even panoptic vision tasks.
+
+Most importantly, Faster R-CNN marked the transition away from handcrafted methods. Region
+proposals, once a bottleneck, became a learnable part of the network. This mindset of making every
+component trainable has since defined modern deep learning research in vision.
+
+---
+
+### Reflections
+
+When I first studied Faster R-CNN, what struck me most was how elegant the solution felt. Instead
+of trying to tweak Selective Search or build better heuristics, the authors simply asked: why not
+let the network learn proposals itself. That single question turned the entire pipeline into a
+fully neural system, and that shift still feels huge even today.
+
+For me, this model also highlighted the balance between accuracy and speed. Faster R-CNN was very
+accurate, but not quite fast enough for real time use cases. This is why models like YOLO grabbed
+so much attention. Yet, if you look at the influence, Faster R-CNN shaped the way people thought
+about modular detection systems and how different components can share features. I think of it as
+the bridge between the early region based detectors and the modern unified ones.
+
+My main takeaway is that progress in deep learning often comes from removing the handcrafted parts
+and making them learnable. Faster R-CNN showed that this principle works not just for features,
+but also for proposals. That lesson still applies in new areas, and it is why this model remains
+so influential years later.

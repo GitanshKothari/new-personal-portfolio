@@ -1,0 +1,695 @@
+---
+title: "YOLOv2 (YOLO9000)"
+date: "2025-09-23"
+description: "YOLOv2 improved on YOLOv1 by introducing anchors, a stronger backbone, multi-scale training, and the ability to detect over 9000 classes while still running in real time."
+tags: ["Object Detection", "YOLOv2", "YOLO9000", "Deep Learning", "Real-Time Detection"]
+image: "/blog/yolov2/hero.png"
+---
+
+## Context, Motivation, and Problems Solved
+
+When YOLOv1 came out, it was revolutionary because it reframed object detection as a single
+regression problem. It was fast — around 45 FPS — and simple, with no proposal stage and no
+multi-step pipeline. But after the excitement settled, people quickly noticed its shortcomings.
+
+The first problem was **localization**. YOLOv1 often struggled to predict bounding boxes that lined
+up cleanly with the objects. Its loss function treated small and large boxes the same, and because
+it predicted boxes directly from each grid cell, it didn’t have flexible priors to guide those box
+shapes. This led to boxes that were “close but not quite right.”
+
+The second problem was with **small objects**. A 7 × 7 grid on a 448 × 448 image meant each cell
+covered a large 64 × 64 area. Tiny objects like birds or bottles could easily disappear because the
+features were too coarse.
+
+The third issue was the **limited class set**. YOLOv1 was tied to relatively small datasets like
+Pascal VOC, which had only 20 classes. This made it less attractive for real-world use cases where
+we care about thousands of categories.
+
+Finally, the **backbone** was a limiting factor. YOLOv1 used a GoogLeNet-inspired network, but it
+wasn’t as strong as VGG or ResNet at classification. Since better features mean better detection,
+this backbone held YOLOv1 back in accuracy.
+
+YOLOv2 was introduced in 2017 to address these problems. It aimed to be both **faster and more
+accurate**, while also scaling up detection to over **9000 classes** by combining ImageNet and COCO
+training. That’s why it’s often referred to as **YOLO9000**.
+
+The key improvements — anchors, Darknet-19 backbone, multi-scale training, and a passthrough layer
+for fine-grained features — all came together to solve YOLOv1’s weaknesses without sacrificing
+real-time performance.
+
+## Architecture Breakdown
+
+### Step 1: Backbone (Darknet-19) and Input Resolution
+
+One of the major upgrades in YOLOv2 was replacing the backbone used in YOLOv1 with a much stronger
+yet efficient network called **Darknet-19**. The goal was to get richer features without slowing
+down inference too much.
+
+---
+
+#### Darknet-19 architecture
+
+Darknet-19 is a 19-layer convolutional neural network that was inspired by VGG but optimized for
+speed. It has:
+
+- **19 convolutional layers** with 1×1 and 3×3 filters.  
+- **5 max-pooling layers** for downsampling.  
+- **Batch normalization** after every convolution to improve stability.  
+- **Global average pooling** instead of fully connected layers for classification.  
+
+This design gave it both speed and accuracy. On ImageNet, Darknet-19 achieved **top-1 accuracy of
+72.9%** while running at 171 FPS, which made it very suitable as a backbone for real-time object
+detection.
+
+---
+
+#### Input resolution
+
+In YOLOv1, training was done at 224 × 224 for classification pretraining, and detection was done at
+448 × 448. YOLOv2 improved this by training directly at **448 × 448**, which gave the network
+better resolution for small object detection.
+
+This higher input size meant each grid cell (S=13 instead of 7) covered a smaller patch of the
+image, giving YOLOv2 finer spatial resolution. Combined with the stronger backbone, this directly
+tackled YOLOv1’s weakness with small objects.
+
+---
+
+#### Why this matters
+
+By introducing Darknet-19 and training at higher input resolution, YOLOv2 started with a much
+stronger feature extractor. Instead of being limited by a weak backbone, it now had features
+competitive with other state-of-the-art networks, while still being fast enough for real-time use.
+
+### Step 2: Anchor Boxes
+
+Another big change in YOLOv2 was moving from **direct box prediction** (like in YOLOv1) to using
+**anchor boxes**. This was inspired by Faster R-CNN and SSD, which showed that having predefined
+box priors makes localization much more stable.
+
+---
+
+#### Why anchors?
+
+In YOLOv1, each grid cell directly predicted bounding box coordinates without any guidance. The
+network had to learn everything from scratch: where objects usually appear, what typical aspect
+ratios look like, and how large boxes should be. This led to unstable training and poor
+localization accuracy.
+
+Anchor boxes solve this by giving the network a set of **reference shapes** (priors). Each predicted
+box is expressed as an **offset** from one of these anchors. This way, the network doesn’t start
+from zero — it starts from a sensible guess and only learns the adjustments.
+
+---
+
+#### Parameterization
+
+If an anchor box has width $p_w$ and height $p_h$, and its center is at grid cell $(c_x, c_y)$,
+then the predicted box is computed as:
+
+$
+b_x = \sigma(t_x) + c_x
+$
+$
+b_y = \sigma(t_y) + c_y
+$
+$
+b_w = p_w \cdot e^{t_w}
+$
+$
+b_h = p_h \cdot e^{t_h}
+$
+
+- $t_x, t_y, t_w, t_h$: raw outputs from the network.  
+- $\sigma$: sigmoid function to keep $b_x, b_y$ in [0,1] relative to the cell.  
+- $p_w, p_h$: anchor dimensions.  
+
+This formulation ensures stable training and allows the model to predict a wide variety of box
+sizes and shapes.
+
+---
+
+#### Choosing anchors
+
+YOLOv2 introduced a neat trick: instead of hand-picking anchors, it used **k-means clustering**
+on the dataset’s bounding boxes to find the most representative shapes. For Pascal VOC and COCO,
+this gave 5 anchors with sizes tailored to the dataset.
+
+For example, on COCO, the cluster centroids produced anchors like:  
+(1.3, 1.5), (2.0, 3.0), (3.5, 5.0), … etc. (relative to the input size).
+
+---
+
+#### Output tensor with anchors
+
+With anchors, the output tensor structure changes. For each grid cell:
+
+- Each of the B anchors predicts (x, y, w, h, objectness).  
+- Plus C class scores.  
+
+So the output shape is:
+
+$
+S \times S \times (B \times 5 + C)
+$
+
+where $S = 13$, $B = 5$, $C = 20$ for Pascal VOC.  
+That gives:
+
+$
+13 \times 13 \times (5 \times 5 + 20) = 13 \times 13 \times 45
+$
+
+This is much richer than YOLOv1’s 7 × 7 × 30, while still being efficient.
+
+---
+
+#### Why this matters
+
+Anchor boxes were a major step toward modern detectors. They solved YOLOv1’s localization issues
+and gave the network flexibility to handle multiple object shapes and aspect ratios. This change
+alone significantly boosted YOLOv2’s accuracy while keeping its speed advantage.
+
+
+### Step 3: Multi-Scale Training
+
+A clever innovation in YOLOv2 was **multi-scale training**. Instead of fixing the input resolution
+to 448 × 448 (as in YOLOv1), the authors trained the model to handle multiple input sizes.  
+
+---
+
+#### How it worked
+
+During training, every 10 batches, the network randomly chose a new input resolution from the set:
+
+$
+\{320, 352, 384, 416, 448, 480, 512, 544, 576, 608\}
+$
+
+The image was resized to one of these dimensions, and the model was trained normally. Because the
+convolutional layers are fully connected only at the end, the architecture can naturally handle
+different input sizes without modification.
+
+---
+
+#### Example
+
+Suppose we resize an image to 416 × 416. With a stride of 32 in the backbone:
+
+$
+S = \frac{416}{32} = 13
+$
+
+So the final grid is 13 × 13.  
+
+If we resize to 608 × 608:
+
+$
+S = \frac{608}{32} = 19
+$
+
+So the final grid is 19 × 19.  
+
+This means the same network can output different grid sizes depending on the input, which makes it
+flexible at test time.
+
+---
+
+#### Why this helps
+
+- **Small objects**: At higher resolutions (like 608 × 608), the grid is finer (19 × 19). Each cell
+  covers fewer pixels, so small objects are easier to detect.  
+- **Speed vs accuracy trade-off**: At lower resolutions (like 320 × 320), the grid is coarser
+  (10 × 10), but the network runs faster.  
+- **Robustness**: Because the model saw all these resolutions during training, it can adapt to
+  different deployment scenarios without retraining.  
+
+---
+
+#### Why it matters
+
+Multi-scale training was one of the first techniques to explicitly train detectors to handle
+variable input sizes. It allowed YOLOv2 to strike a balance between speed and accuracy at inference
+time: you could run it at 320 × 320 for real-time speed, or 608 × 608 for higher accuracy, all with
+the same weights.
+
+
+### Step 4: Passthrough Layer
+
+YOLOv1 had a major weakness with small objects because its final feature map was relatively coarse.
+Even in YOLOv2, the stride of 32 in Darknet-19 meant that the detection layer operated on a
+13 × 13 grid for 416 × 416 inputs. To help with this, YOLOv2 introduced a **passthrough layer**
+(similar in spirit to skip connections).
+
+---
+
+#### How it worked
+
+Instead of relying only on the last convolutional feature map, YOLOv2 took higher-resolution
+features from an earlier layer and “passed them through” into the detection head.  
+
+- The earlier feature map had shape **26 × 26 × 512**.  
+- To merge it with the 13 × 13 × 1024 feature map, the 26 × 26 map was **reshaped** into
+  13 × 13 × 2048 by stacking groups of 2×2 neighboring cells along the depth dimension.  
+- The reshaped features were concatenated with the 13 × 13 × 1024 map, giving a richer
+  representation with both coarse and fine details.
+
+---
+
+#### Example
+
+Imagine a small bird occupying only 10 × 10 pixels in the original 416 × 416 image.  
+
+- In the 13 × 13 feature map, that bird might be squeezed into just **1 cell**, losing detail.  
+- In the 26 × 26 feature map, it could cover **2 × 2 cells**, which keeps more spatial information.  
+- By passing through this 26 × 26 map into the final layer, YOLOv2 could preserve fine-grained
+  cues that help the network detect smaller objects.
+
+---
+
+#### Why this matters
+
+This passthrough idea was a precursor to the **feature pyramid networks (FPNs)** that became
+standard later. By combining low-level fine features with high-level semantic features, YOLOv2
+improved its ability to handle small objects — one of YOLOv1’s biggest weaknesses.
+
+
+### Step 5: Detection Head Outputs
+
+At the end of the network, YOLOv2 outputs predictions from the combined feature map (after adding
+anchors and the passthrough layer). The structure is similar to YOLOv1 but richer because of
+anchors and more grid cells.
+
+---
+
+#### Output structure
+
+For each grid cell, YOLOv2 predicts:
+
+- **B anchor boxes** (B = 5).  
+  Each anchor has 5 values: (x, y, w, h, objectness).  
+- **C class scores** (C = 20 for Pascal VOC, 80 for COCO).  
+
+So the total predictions per grid cell are:
+
+$
+B \times 5 + C
+$
+
+For Pascal VOC (C = 20):
+
+$
+5 \times 5 + 20 = 45
+$
+
+---
+
+#### Example with 416 × 416 input
+
+- Final grid resolution: S = 13.  
+- Predictions: 13 × 13 × 45 = 7605 values.  
+
+This is significantly more expressive than YOLOv1’s 7 × 7 × 30 = 1470 values, and it gives the
+model much more flexibility to represent multiple objects of varying sizes and shapes.
+
+---
+
+#### Example with 608 × 608 input
+
+Because of multi-scale training, we can also run inference at 608 × 608. In this case:
+
+$
+S = \frac{608}{32} = 19
+$
+
+So the output is:
+
+$
+19 \times 19 \times 45 = 16245 \; \text{values}
+$
+
+This provides finer localization for small objects.
+
+---
+
+#### Why this matters
+
+The final detection head of YOLOv2 was designed to balance flexibility and efficiency. With 5
+anchors per cell and multi-scale capability, the model could detect objects at a variety of scales
+and aspect ratios, while still being compact enough for real-time use.
+
+
+## Training Procedure
+
+Training YOLOv2 was more involved than YOLOv1, because it introduced a stronger backbone, anchor
+boxes, and multi-scale training. On top of that, YOLO9000 added the challenge of joint training on
+two very different datasets.
+
+---
+
+### Step 1: Pretraining on ImageNet
+
+Before training for detection, YOLOv2 pretrained the Darknet-19 backbone on ImageNet for
+classification.  
+- Input size: 224 × 224 → later fine-tuned at 448 × 448.  
+- Achieved top-1 accuracy of 72.9%, which was competitive while still lightweight.  
+- This provided a strong initialization, making detection training much more stable.
+
+---
+
+### Step 2: Detection fine-tuning
+
+The pretrained Darknet-19 was then fine-tuned on detection datasets like Pascal VOC and COCO.  
+- Input resolution: 416 × 416 (sometimes varied for multi-scale training).  
+- Optimizer: SGD with momentum.  
+- Learning rate schedule with warmup and step decay.  
+
+This fine-tuning phase trained the detection head (anchors, class scores, objectness) on top of the
+backbone.
+
+---
+
+### Step 3: YOLO9000 — joint training
+
+One of the most ambitious aspects of YOLOv2 was **YOLO9000**, where the model was trained jointly
+on COCO (detection) and ImageNet (classification).  
+
+- **COCO dataset**: provides bounding boxes for 80 object categories.  
+- **ImageNet dataset**: provides classification labels for thousands of categories.  
+
+To combine them, YOLOv2 used a **WordTree hierarchy**, which organized labels from both datasets
+into a semantic tree (e.g., “dog” and “cat” under “animal,” “car” under “vehicle”).  
+
+This allowed the network to learn detection for classes in COCO and classification for thousands of
+ImageNet categories, all in the same framework. As a result, YOLO9000 could detect **over 9000
+classes** in real time.
+
+---
+
+### Step 4: Loss function with anchors
+
+The loss was similar to YOLOv1 but adapted for anchors. Each anchor is responsible for predicting
+an object if it has the highest IoU with the ground truth.  
+
+The loss included:  
+1. **Localization loss**: squared error for box coordinates (using the anchor parameterization).  
+2. **Confidence loss**: objectness prediction (1 if object, 0 if not).  
+3. **Classification loss**: softmax for class probabilities.  
+
+The weighting scheme ($lambda_{\text{coord}} = 5$, $\lambda_{\text{noobj}} = 0.5$ was
+retained to balance localization and background errors.
+
+---
+
+### Step 5: Multi-scale training loop
+
+As described earlier, every 10 batches the input resolution was changed randomly. This forced the
+network to generalize to different grid sizes, making it robust to variable test-time conditions.  
+
+---
+
+### Why this matters
+
+By combining ImageNet and COCO, YOLOv2 became the first detector to handle thousands of classes in
+real time. Its training pipeline struck a careful balance: strong backbone features from ImageNet,
+detection supervision from COCO, anchors for localization stability, and multi-scale training for
+flexibility. Together, these changes made YOLOv2 not just faster than YOLOv1, but also far more
+capable.
+
+
+## Implementation Notes
+
+YOLOv2’s implementation differs from YOLOv1 mainly because of anchor boxes and multi-scale
+training. Let’s walk through it step by step.
+
+---
+
+### Step 1: Output tensor with anchors
+
+For a given input resolution, YOLOv2 produces a prediction tensor of size:
+
+$
+S \times S \times (B \times 5 + C)
+$
+
+where  
+- $S$: grid size (e.g., 13 for 416 × 416 inputs).  
+- $B$: number of anchors (5).  
+- $C$: number of classes (20 for VOC, 80 for COCO).  
+
+---
+
+#### Example
+
+For VOC:  
+$
+13 \times 13 \times (5 \times 5 + 20) = 13 \times 13 \times 45
+$
+
+For COCO:  
+$
+13 \times 13 \times (5 \times 5 + 80) = 13 \times 13 \times 85
+$
+
+---
+
+#### PyTorch-style implementation
+
+```python
+class YOLOv2Head(nn.Module):
+    def __init__(self, S=13, B=5, C=20, in_channels=1024):
+        super().__init__()
+        self.S, self.B, self.C = S, B, C
+        # final 1x1 conv outputs predictions per grid cell
+        self.pred = nn.Conv2d(in_channels, B * 5 + C, kernel_size=1)
+
+    def forward(self, x):
+        # x: feature map [batch, in_channels, S, S]
+        out = self.pred(x)
+        # reshape to [batch, S, S, B*5 + C]
+        return out.permute(0, 2, 3, 1)
+```
+---
+
+#### Output interpretation
+
+For each grid cell and anchor:  
+- 5 values for the box: $(t_x, t_y, t_w, t_h, c)$  
+- C class scores  
+
+The box values are transformed into absolute coordinates using the anchor priors:
+
+$b_x = \sigma(t_x) + c_x, \quad$
+$b_y = \sigma(t_y) + c_y$
+
+
+$b_w = p_w \cdot e^{t_w}, \quad$
+$b_h = p_h \cdot e^{t_h}$
+
+
+where $(p_w, p_h)$ are the anchor dimensions.
+
+---
+
+#### Why this matters
+
+This anchor-based prediction format was a big step toward modern detectors. It made YOLOv2 much
+more flexible, since anchors cover a range of aspect ratios and sizes, while offsets let the model
+fine-tune them for specific objects.
+
+### Step 2: Decoding Predictions with Anchors
+
+The network outputs raw values $(t_x, t_y, t_w, t_h, c)$ for each anchor at each grid cell. These
+must be transformed into actual bounding box coordinates relative to the image.
+
+---
+
+#### Parameterization
+
+Given:  
+- Grid cell offset $(c_x, c_y)$  
+- Anchor dimensions $(p_w, p_h)$  
+- Network outputs $(t_x, t_y, t_w, t_h)$  
+
+The box is computed as:
+
+$
+b_x = \frac{1}{S} \left( \sigma(t_x) + c_x \right), \quad
+b_y = \frac{1}{S} \left( \sigma(t_y) + c_y \right)
+$
+
+$
+b_w = \frac{1}{W} \left( p_w \cdot e^{t_w} \right), \quad
+b_h = \frac{1}{H} \left( p_h \cdot e^{t_h} \right)
+$
+
+- $S$: grid size (13 for 416 × 416 input).  
+- $W, H$: image width and height (416 each).  
+- Sigmoid keeps $b_x, b_y$ inside the cell.  
+- Exponential scaling allows wide variation in $b_w, b_h$.  
+
+---
+
+#### Example
+
+Suppose:  
+- Image size: 416 × 416 → grid = 13 × 13.  
+- Cell (i=5, j=7), so offsets $c_x = 7, c_y = 5$.  
+- Anchor = (p_w=100, p_h=200).  
+- Predicted outputs: $t_x = 0.3, t_y = -0.4, t_w = 0.2, t_h = 0.1$.  
+
+Compute:  
+$
+b_x = \frac{1}{13}( \sigma(0.3) + 7 ) = \frac{1}{13}(0.574 + 7) = 0.582
+$
+
+$
+b_y = \frac{1}{13}( \sigma(-0.4) + 5 ) = \frac{1}{13}(0.401 + 5) = 0.415
+$
+
+$
+b_w = \frac{1}{416}(100 \cdot e^{0.2}) \approx \frac{122}{416} = 0.293
+$
+
+$
+b_h = \frac{1}{416}(200 \cdot e^{0.1}) \approx \frac{221}{416} = 0.531
+$
+
+So the decoded box is centered at (0.582, 0.415) relative to the image, with width 29% and height
+53% of the image size.
+
+---
+
+#### PyTorch-style implementation
+```python
+def decode(preds, anchors, S=13, img_size=416):
+    """
+    preds: [batch, S, S, B, 5] -> (tx, ty, tw, th, conf)
+    anchors: list of (pw, ph), length B
+    """
+    B = len(anchors)
+    grid_x = torch.arange(S).repeat(S, 1).unsqueeze(0).unsqueeze(-1)
+    grid_y = torch.arange(S).repeat(S, 1).t().unsqueeze(0).unsqueeze(-1)
+
+    tx, ty, tw, th, conf = preds[..., 0], preds[..., 1], preds[..., 2], preds[..., 3], preds[..., 4]
+
+    bx = (torch.sigmoid(tx) + grid_x) / S
+    by = (torch.sigmoid(ty) + grid_y) / S
+
+    anchor_w = torch.tensor([a[0] for a in anchors]).view(1, 1, 1, B)
+    anchor_h = torch.tensor([a[1] for a in anchors]).view(1, 1, 1, B)
+
+    bw = (anchor_w * torch.exp(tw)) / img_size
+    bh = (anchor_h * torch.exp(th)) / img_size
+
+    return bx, by, bw, bh, conf
+```
+---
+
+#### Why this matters
+
+This decoding step is critical. Without anchors, YOLOv1 had unstable box predictions. With anchors,
+YOLOv2 predicts offsets, making training easier and localization much more accurate. The decoding
+math turns those offsets into actual bounding boxes ready for scoring and filtering.
+
+
+### Step 3: Multi-Scale Training Loop
+
+One of YOLOv2’s clever tricks was multi-scale training. Instead of fixing the input resolution, the
+network was trained on different image sizes to make it robust at inference time.
+
+---
+
+#### How it worked
+
+Every 10 batches, the input resolution was changed randomly. The sizes were chosen from:
+
+$
+\{320, 352, 384, 416, 448, 480, 512, 544, 576, 608\}
+$
+
+This forced the network to adapt to multiple grid sizes (from 10 × 10 up to 19 × 19), while using
+the same weights.
+
+---
+
+#### Example
+
+- At 320 × 320 input:  
+  Grid = 10 × 10, fastest inference, lowest accuracy.  
+
+- At 416 × 416 input:  
+  Grid = 13 × 13, balanced speed and accuracy (default).  
+
+- At 608 × 608 input:  
+  Grid = 19 × 19, best accuracy, slower inference.  
+
+Because the model saw all these cases during training, it could flexibly adjust at test time.  
+
+---
+
+#### PyTorch-style training loop
+```python
+for epoch in range(num_epochs):
+    for batch_idx, (images, targets) in enumerate(dataloader):
+        # Randomly pick new input size every 10 batches
+        if batch_idx % 10 == 0:
+            new_dim = random.choice([320,352,384,416,448,480,512,544,576,608])
+            dataloader.set_input_dim(new_dim)
+
+        preds = model(images)
+        loss = criterion(preds, targets)
+        loss.backward()
+        optimizer.step()
+        optimizer.zero_grad()
+```
+---
+
+#### Why this matters
+
+Multi-scale training gave YOLOv2 flexibility that most detectors lacked. With a single trained
+model, you could trade off speed and accuracy at inference time simply by resizing the input,
+without needing to retrain the network. This was a key reason YOLOv2 remained practical for so many
+different applications.
+
+## Limitations
+
+Despite its improvements over YOLOv1, YOLOv2 was not without weaknesses. The first limitation was
+that its **accuracy still lagged behind two-stage detectors** like Faster R-CNN. While YOLOv2 closed
+the gap, especially with the introduction of anchors and multi-scale training, Faster R-CNN still
+had better localization accuracy and higher mAP on benchmarks.
+
+Another limitation was that **anchors increased complexity**. In YOLOv1, the output format was very
+simple: each cell directly predicted box coordinates. In YOLOv2, decoding required extra math with
+sigmoids, exponentials, and anchor priors. This was necessary for better localization, but it made
+the architecture less intuitive.
+
+The third limitation was with **small object detection**. The passthrough layer helped, and higher
+input resolutions improved things further, but tiny objects were still challenging. Even with a
+19 × 19 grid at 608 input size, very small details could be lost in downsampling.
+
+Finally, the **YOLO9000 joint training** was powerful but imperfect. While the model could
+“recognize” thousands of classes, its performance on rare classes or those without bounding box
+annotations was limited. It was more of a proof of concept than a fully reliable large-scale
+detector.
+
+---
+
+## Reflections
+
+YOLOv2 felt like the moment YOLO grew up. Where YOLOv1 was raw and experimental, YOLOv2 polished
+the framework into something competitive with state-of-the-art detectors. By introducing anchors,
+Darknet-19, multi-scale training, and the passthrough layer, it solved most of the big criticisms of
+YOLOv1 without giving up the speed that made YOLO famous.
+
+What I find most interesting is how YOLOv2 introduced ideas that later became standard. Multi-scale
+training is now common in many models. Using dataset-specific anchor clustering was a clever hack
+that inspired improvements in other anchor-based detectors. And the passthrough layer hinted at the
+importance of combining low-level and high-level features, which became mainstream with feature
+pyramid networks.
+
+YOLOv2 may not have been perfect, but it showed that a one-stage detector could be both fast and
+accurate. It also demonstrated how object detection could scale up — YOLO9000 proved that joint
+training could connect classification and detection into one framework. For me, YOLOv2 is the model
+that transformed YOLO from an experiment into a family of detectors that could compete at the
+highest level.

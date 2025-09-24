@@ -1,0 +1,725 @@
+---
+title: "YOLOv1"
+date: "2025-09-23"
+description: "YOLOv1 reframed object detection as a single regression problem, predicting bounding boxes and class probabilities in one pass, enabling real-time detection for the first time."
+tags: ["Object Detection", "YOLO", "Real-Time Detection", "Deep Learning", "CNN"]
+image: "/blog/yolov1/hero.png"
+---
+
+## Context, Motivation, and Problems Solved
+
+By the time YOLOv1 was introduced in 2016, object detection had already gone through a few big
+iterations. R-CNN started the deep learning wave but was painfully slow because it ran a CNN on
+thousands of cropped regions per image. Fast R-CNN improved efficiency by sharing features, and
+Faster R-CNN introduced the Region Proposal Network to replace hand-engineered Selective Search.
+These models were accurate, but they were still two-stage pipelines. That meant they were too slow
+for real-time use cases like video analysis, robotics, or self-driving cars.
+
+This is the problem YOLOv1 set out to solve. The key insight was to treat detection not as a
+two-step process (propose, then classify) but as a single regression problem. Instead of generating
+region proposals and then running classification, YOLO directly predicted bounding box coordinates
+and class probabilities in one forward pass of the network. No separate proposal stage, no
+additional region-level computation.
+
+This was a huge shift in perspective. By dividing the input image into a grid and assigning each
+cell the task of detecting objects whose centers fell inside it, YOLO eliminated the need for
+region proposals altogether. The network produced all bounding boxes and class predictions at once,
+which made detection both fast and simple.
+
+The result was real-time object detection, something previous methods struggled to achieve. YOLOv1
+was able to run at around 45 frames per second on a standard GPU, while maintaining competitive
+accuracy. This speed opened the door to real-world applications where waiting a few seconds per
+image was not acceptable. YOLOv1 showed that object detection did not have to be a slow, staged
+process — it could be unified and efficient.
+
+## Architecture Breakdown
+
+
+### Step 1: Grid Division
+
+YOLOv1 begins by dividing the input image into a fixed grid. Every image is resized to 448 × 448
+pixels. The image is then split into an **S × S grid**, where $S = 7$. That gives us 49 cells,
+each of size:
+
+$
+\frac{448}{7} = 64 \times 64 \; \text{pixels}
+$
+
+---
+
+#### Responsibility of each cell
+
+Each grid cell is responsible for detecting objects whose **center** lies inside it. This means
+that no matter how big or small an object is, only the cell containing its center takes ownership.
+
+For example, imagine an image where a dog’s center lands at coordinates (200, 180). To determine
+which cell is responsible:
+
+$\text{row} = \left\lfloor \frac{180}{64} \right\rfloor = 2, \quad$
+$\text{col} = \left\lfloor \frac{200}{64} \right\rfloor = 3$
+
+
+So the object is assigned to cell (row 2, column 3).
+
+---
+
+#### Why this is different
+
+This is the first major departure from R-CNN-style detectors. Instead of generating region
+proposals for *any* possible location, YOLO fixes responsibility to grid cells. The number of
+predictions per image is therefore **bounded and consistent**. No matter how many objects are in
+the image, YOLO always outputs the same number of predictions.
+
+
+#### Visual reference
+
+The original paper includes a diagram that shows how the 7 × 7 grid works:  
+[YOLOv1 paper, Figure 2](https://arxiv.org/pdf/1506.02640.pdf).
+
+### Step 2: Predictions per Cell
+
+Once the image is divided into 7 × 7 cells, each cell produces a fixed set of predictions. In the
+paper, each cell predicts **B = 2 bounding boxes** and **C class probabilities**. For Pascal VOC,
+C = 20 classes.
+
+---
+
+#### Bounding box outputs
+
+Each bounding box has 5 values:
+
+$
+(x, y, w, h, c)
+$
+
+- $x, y$: center of the box, **relative to the grid cell**, normalized between 0 and 1.  
+- $w, h$: width and height of the box, relative to the entire image size (448 × 448).  
+- $c$: confidence score = $\Pr(\text{object}) \times \text{IoU(pred, truth)}$.  
+
+---
+
+#### Example with our dog
+
+Suppose the dog’s center falls in cell (2, 3), whose top-left corner is at (128, 128) in image
+coordinates. The network predicts for Bounding Box 1:
+
+- Relative x = 0.25, y = 0.5  
+  → Absolute center = (128 + 0.25×64, 128 + 0.5×64) = (144, 160).  
+
+- Relative w = 0.25, h = 0.125  
+  → Absolute size = (0.25×448, 0.125×448) = (112, 56).  
+
+- Confidence = 0.9  
+
+This means the box covers 112 × 56 pixels, centered at (144, 160), with 90% confidence.
+
+---
+
+#### Class probabilities
+
+In addition to bounding boxes, each cell predicts 20 class probabilities. These are conditional
+probabilities:
+
+$
+\Pr(\text{class}_i \mid \text{object})
+$
+
+Suppose the network outputs:  
+- Dog = 0.8,  
+- Cat = 0.1,  
+- Car = 0.05,  
+- All others very small.  
+
+---
+
+#### Combining the outputs
+
+The final score for each class is obtained by multiplying the class probability with the confidence
+score. For “dog”:
+
+$
+\text{score(dog)} = 0.8 \times 0.9 = 0.72
+$
+
+This means the model predicts with 72% confidence that this bounding box contains a dog.
+
+---
+
+#### Total predictions per cell
+
+Each cell predicts:
+
+$
+B \times 5 + C = 2 \times 5 + 20 = 30 \; \text{numbers}
+$
+
+So the full network output is:
+
+$
+7 \times 7 \times 30 = 1470 \; \text{values per image}
+$
+
+regardless of how many objects are present.
+
+
+
+### Step 3: Combining Predictions Across the Grid
+
+After Step 2, every grid cell has predicted two bounding boxes and 20 class probabilities. Across
+a 7 × 7 grid, that means:
+
+$
+7 \times 7 \times 2 = 98 \; \text{bounding boxes per image}
+$
+
+Each of these boxes has an associated score for each class.
+
+
+#### Filtering predictions
+
+During inference, YOLO filters boxes in two steps:
+
+1. **Confidence thresholding**: boxes with very low confidence (for example < 0.1) are discarded.  
+   This removes most of the background boxes.  
+
+2. **Non-Maximum Suppression (NMS)**: among boxes of the same class that overlap heavily, YOLO
+   keeps the one with the highest score and discards the others.  
+   The overlap is measured with Intersection-over-Union (IoU). If IoU > 0.5, the lower-scoring box
+   is suppressed.  
+
+
+#### Example continuation
+
+Suppose cell (2,3) predicted two boxes for a dog:
+- Box A: score = 0.72, covering the dog tightly.  
+- Box B: score = 0.55, slightly offset but overlapping heavily with Box A.  
+
+Since both overlap with IoU > 0.5, NMS keeps only Box A. The final detection is thus a “dog” with
+72% confidence at the given location.
+
+
+#### Why this matters
+
+By combining predictions across the grid and applying NMS, YOLO turns its fixed 98 bounding boxes
+into a smaller set of **final detections**. Unlike R-CNN which started with thousands of candidate
+regions, YOLO starts with far fewer, which is why it is so fast.
+
+---
+
+### Step 4: Network Backbone
+
+The predictions described above come from a CNN backbone. YOLOv1’s architecture was inspired by
+GoogLeNet (Inception), but simplified into a series of convolutional and fully connected layers.
+
+---
+
+#### Architecture details
+
+- Input: 448 × 448 × 3 image  
+- 24 convolutional layers  
+- 2 fully connected layers  
+
+The final fully connected layer outputs the 7 × 7 × 30 = 1470 values we described earlier.  
+
+---
+
+#### Convolutional layers
+
+The conv layers extract rich feature maps from the image. They alternate between 1×1 convolutions
+(to reduce depth and add non-linearity) and 3×3 convolutions (to capture spatial context). Strides
+and pooling reduce the resolution gradually until the feature map is compact enough for the dense
+predictions.
+
+---
+
+#### Fully connected layers
+
+The feature maps are flattened and passed through two fully connected layers. The final layer
+outputs the 1470 values as a single vector, which can then be reshaped into 7 × 7 × 30.  
+
+---
+
+#### Why this backbone was chosen
+
+At the time, most detectors relied on VGG or AlexNet-like backbones. By taking inspiration from
+GoogLeNet’s efficiency and combining it with fully connected layers for direct regression, YOLOv1
+was able to strike a balance between **speed** (45 FPS) and **accuracy**. This design became the
+starting point for all future YOLO models.
+
+
+### Training Procedure
+
+YOLOv1 treats object detection as a regression problem. The network is trained end-to-end with a
+single loss function that combines localization, confidence, and classification errors. Because
+these components have very different scales, the authors introduced balancing terms to weight them
+properly.
+
+---
+
+#### Step 1: Localization loss
+
+For each bounding box that is responsible for an object (the one with highest IoU with the ground
+truth), YOLOv1 penalizes errors in predicting the box coordinates:
+
+$
+L_{\text{loc}} = \lambda_{\text{coord}} \sum_{i=0}^{S^2} \sum_{j=0}^{B}
+\mathbb{1}_{ij}^{\text{obj}} \big[ (x_i - \hat{x}_i)^2 + (y_i - \hat{y}_i)^2 \big]
+$
+
+
+$+ \lambda_{\text{coord}} \sum_{i=0}^{S^2} \sum_{j=0}^{B}$
+$\mathbb{1}_{ij}^{\text{obj}} \big[ (\sqrt{w_i} - \sqrt{\hat{w}_i})^2 + (\sqrt{h_i} - \sqrt{\hat{h}_i})^2 \big]$
+
+
+- $x, y$: center coordinates relative to the grid cell.  
+- $w, h$: width and height relative to the image size.  
+- $\hat{}$: predicted values.  
+- The square root on \(w, h\) reduces the impact of large box errors.  
+- $\mathbb{1}_{ij}^{\text{obj}} = 1$ if j-th box in cell i is responsible for predicting the object.  
+
+$\lambda_{\text{coord}} = 5$ was used in the paper to give higher weight to localization.
+
+---
+
+#### Step 2: Confidence loss
+
+Each predicted box outputs a confidence score **c**, which should equal the IoU between predicted
+and ground truth if an object exists, or 0 if no object is present.
+
+$L_{\text{conf}} = \sum_{i=0}^{S^2} \sum_{j=0}^{B}$
+$\mathbb{1}_{ij}^{\text{obj}} (c_i - \hat{c}_i)^2$
+$+ \lambda_{\text{noobj}} \sum_{i=0}^{S^2} \sum_{j=0}^{B}$
+$\mathbb{1}_{ij}^{\text{noobj}} (c_i - \hat{c}_i)^2$
+
+
+- First term: penalizes errors when there is an object.  
+- Second term: penalizes false positives when there is no object.  
+- $\lambda_{\text{noobj}} = 0.5$ was used to down-weight background boxes.  
+
+---
+
+#### Step 3: Classification loss
+
+For each cell that contains an object, the predicted class probabilities are compared to the
+ground truth with squared error:
+
+
+$L_{\text{cls}} = \sum_{i=0}^{S^2} \mathbb{1}_i^{\text{obj}}$
+$\sum_{c \in \text{classes}} (p_i(c) - \hat{p}_i(c))^2$
+
+
+Here \(p_i(c)\) is the ground truth probability (1 for the true class, 0 for others).
+
+---
+
+#### Step 4: Total loss
+
+The total loss is the sum of all three parts:
+
+$
+L = L_{\text{loc}} + L_{\text{conf}} + L_{\text{cls}}
+$
+
+This loss is minimized over the entire dataset, allowing the network to learn localization,
+objectness, and classification simultaneously.
+
+---
+
+#### Training details
+
+- **Input size**: 448 × 448  
+- **Optimizer**: SGD with momentum = 0.9, weight decay = 0.0005  
+- **Learning rate**: started at 0.001, warmed up, then decayed over training  
+- **Batch size**: 64  
+- **Training length**: ~135 epochs on Pascal VOC  
+
+These design choices, along with the weighted loss, helped stabilize training, which could easily
+blow up given the difficulty of predicting 1470 values per image.
+
+---
+
+#### Why this was important
+
+Earlier detectors optimized classification and bounding box regression separately, in multiple
+stages. YOLOv1 unified everything under a single differentiable loss. This was not only elegant,
+but also made the model trainable end-to-end for the first time in a single pipeline.
+
+
+
+## Implementation Notes
+
+Let us now look at how YOLOv1 can be implemented in practice. Unlike the two-stage detectors, YOLO
+has a very clean pipeline: a single network outputs all predictions at once. We will build it step
+by step.
+
+---
+
+### Step 1: Grid and Prediction Tensor
+
+The input image is resized to **448 × 448**. The network outputs predictions arranged into a
+7 × 7 grid. For each grid cell:
+
+- B = 2 bounding boxes, each with 5 values (x, y, w, h, confidence).  
+- C = number of classes (20 for Pascal VOC).  
+
+So each grid cell predicts:
+
+$
+B \times 5 + C = 2 \times 5 + 20 = 30
+$
+
+The total output per image is:
+
+$
+7 \times 7 \times 30 = 1470
+$
+
+---
+
+#### PyTorch-style model head
+
+```python
+import torch
+import torch.nn as nn
+
+class YOLOv1Head(nn.Module):
+    def __init__(self, S=7, B=2, C=20):
+        super().__init__()
+        self.S = S
+        self.B = B
+        self.C = C
+        # Final output dimension = S x S x (B*5 + C)
+        self.fc = nn.Linear(4096, S * S * (B * 5 + C))
+
+    def forward(self, x):
+        # x is flattened features from conv backbone
+        x = self.fc(x)
+        # Reshape into [batch, S, S, B*5 + C]
+        return x.view(-1, self.S, self.S, self.B * 5 + self.C)
+```
+
+#### Example usage
+```python
+head = YOLOv1Head(S=7, B=2, C=20)
+features = torch.randn(1, 4096)  # flattened conv output
+preds = head(features)
+
+print(preds.shape)
+# torch.Size([1, 7, 7, 30])
+```
+
+Each element of this 7 × 7 grid contains:
+
+- Box 1: \((x, y, w, h, c)\)  
+- Box 2: \((x, y, w, h, c)\)  
+- Class probabilities: 20 numbers  
+
+---
+
+##### Interpreting the outputs
+
+Suppose cell (2, 3) predicts:
+
+- Box 1: \((0.25, 0.5, 0.25, 0.125, 0.9)\)  
+- Class probabilities: $[dog=0.8, cat=0.1, car=0.05, \dots]$
+
+---
+
+The absolute bounding box coordinates are:
+
+$x = (col + 0.25) \times 64, \quad$
+$y = (row + 0.5) \times 64$
+
+
+
+$w = 0.25 \times 448, \quad$
+$h = 0.125 \times 448$
+
+
+
+
+For \((row=2, col=3)\):
+
+$x = (3 + 0.25) \times 64 = 208, \quad$
+$y = (2 + 0.5) \times 64 = 160$
+
+So the box is centered at **(208, 160)** with size **112 × 56** pixels.
+
+---
+
+The final score for “dog” is:
+
+$
+0.9 \times 0.8 = 0.72
+$
+
+
+### Step 2: Loss Function
+
+YOLOv1 uses a single loss function that combines three parts:
+
+1. **Localization loss** (bounding box coordinates).  
+2. **Confidence loss** (objectness).  
+3. **Classification loss** (class probabilities).  
+
+Because these terms have very different scales, the loss function includes weights:
+- $\lambda_{\text{coord}} = 5$ to emphasize localization.  
+- $\lambda_{\text{noobj}} = 0.5$ to down-weight background confidence errors.  
+
+---
+
+#### Localization loss
+
+For the box responsible for an object:
+
+$L_{\text{loc}} =\lambda_{\text{coord}} \sum (x - \hat{x})^2 + (y - \hat{y})^2$
+$+ \lambda_{\text{coord}} \sum (\sqrt{w} - \sqrt{\hat{w}})^2$
+$+ (\sqrt{h} - \sqrt{\hat{h}})^2$
+
+
+---
+
+#### Confidence loss
+
+For all predicted boxes:
+
+$
+L_{\text{conf}} = \sum_{obj} (c - \hat{c})^2 +$
+$\lambda_{\text{noobj}} \sum_{noobj} (c - \hat{c})^2$
+
+
+- $c = \Pr(\text{object}) \times \text{IoU}$.  
+- If no object is present, the target confidence is 0.  
+
+---
+
+#### Classification loss
+
+For each cell containing an object:
+
+$
+L_{\text{cls}} = \sum_{c \in \text{classes}} (p(c) - \hat{p}(c))^2
+$
+
+---
+
+#### Total loss
+
+$
+L = L_{\text{loc}} + L_{\text{conf}} + L_{\text{cls}}
+$
+
+---
+
+#### PyTorch-style implementation
+
+```python
+import torch
+import torch.nn as nn
+
+class YoloLoss(nn.Module):
+    def __init__(self, S=7, B=2, C=20, lambda_coord=5, lambda_noobj=0.5):
+        super().__init__()
+        self.S, self.B, self.C = S, B, C
+        self.lambda_coord = lambda_coord
+        self.lambda_noobj = lambda_noobj
+
+    def forward(self, preds, target):
+        """
+        preds: [batch, S, S, B*5 + C]
+        target: same shape, with ground truth filled
+        """
+        # Split predictions
+        pred_boxes = preds[..., :self.B*5].reshape(-1, self.S, self.S, self.B, 5)
+        pred_classes = preds[..., self.B*5:]
+
+        target_boxes = target[..., :self.B*5].reshape(-1, self.S, self.S, self.B, 5)
+        target_classes = target[..., self.B*5:]
+
+        # Indicator mask: which boxes contain objects
+        obj_mask = target_boxes[..., 4] > 0
+
+        # Localization loss (only for responsible boxes)
+        loc_loss = self.lambda_coord * (
+            (pred_boxes[..., 0:2][obj_mask] - target_boxes[..., 0:2][obj_mask]).pow(2).sum() +
+            (pred_boxes[..., 2:4][obj_mask].sqrt() - target_boxes[..., 2:4][obj_mask].sqrt()).pow(2).sum()
+        )
+
+        # Confidence loss
+        conf_loss_obj = (pred_boxes[..., 4][obj_mask] - target_boxes[..., 4][obj_mask]).pow(2).sum()
+        conf_loss_noobj = self.lambda_noobj * (pred_boxes[..., 4][~obj_mask]).pow(2).sum()
+
+        # Classification loss (only for cells with objects)
+        cls_loss = (pred_classes[obj_mask.any(dim=-1)] - target_classes[obj_mask.any(dim=-1)]).pow(2).sum()
+
+        total_loss = loc_loss + conf_loss_obj + conf_loss_noobj + cls_loss
+        return total_loss
+```
+
+#### Why this matters
+
+This loss design was critical because it balanced very different error types:
+- Box coordinate errors (continuous).
+- Confidence/objectness errors (binary).
+- Class probability errors (categorical).
+
+By weighting them carefully, YOLOv1 could be trained end-to-end as a single unified model.
+
+### Step 3: Inference
+
+During inference, YOLOv1 takes the raw 7 × 7 × (B*5 + C) output and converts it into a set of
+final detections. This requires three steps:
+
+1. Decode the bounding box coordinates.  
+2. Compute the final class-specific scores.  
+3. Apply filtering and Non-Maximum Suppression (NMS).  
+
+---
+
+#### Step 3.1: Decode bounding boxes
+
+Each box predicts relative coordinates \((x, y)\) within its grid cell and relative size
+\((w, h)\) with respect to the image. To convert to absolute image coordinates:
+
+
+$x = \left(col + \hat{x}\right) \times \frac{448}{7}, \quad$
+$y = \left(row + \hat{y}\right) \times \frac{448}{7}$
+
+
+
+$w = \hat{w} \times 448, \quad$
+$h = \hat{h} \times 448$
+
+
+---
+
+#### Step 3.2: Compute class-specific scores
+
+Each box has a confidence $c = \Pr(\text{object}) \times \text{IoU}$.  
+Each cell also predicts class probabilities $\Pr(\text{class}_i \mid \text{object})$.  
+The final score for class \(i\) is:
+
+$
+\text{score}_i = c \times \Pr(\text{class}_i \mid \text{object})
+$
+
+---
+
+#### Step 3.3: Filter boxes with threshold + NMS
+
+1. Discard boxes where the maximum score across classes is below a threshold (e.g., 0.2).  
+2. For each class, apply Non-Maximum Suppression (NMS):  
+   - Keep the box with the highest score.  
+   - Suppress other boxes with IoU > 0.5.  
+
+---
+
+#### PyTorch-style implementation
+
+```python
+import torch
+from torchvision.ops import nms
+
+def decode_yolo_output(preds, S=7, B=2, C=20, conf_thresh=0.2, iou_thresh=0.5):
+    """
+    preds: [batch, S, S, B*5 + C]
+    """
+    batch_size = preds.size(0)
+    final_detections = []
+
+    for b in range(batch_size):
+        boxes, scores, labels = [], [], []
+        for i in range(S):
+            for j in range(S):
+                cell_preds = preds[b, i, j]
+
+                # Extract boxes and class probs
+                box_preds = cell_preds[:B*5].view(B, 5)  # (x,y,w,h,c)
+                class_probs = cell_preds[B*5:]
+
+                for k in range(B):
+                    x, y, w, h, c = box_preds[k]
+
+                    # Decode to absolute coords
+                    abs_x = (j + x) * (448 / S)
+                    abs_y = (i + y) * (448 / S)
+                    abs_w = w * 448
+                    abs_h = h * 448
+
+                    # Convert center to corners
+                    x1 = abs_x - abs_w / 2
+                    y1 = abs_y - abs_h / 2
+                    x2 = abs_x + abs_w / 2
+                    y2 = abs_y + abs_h / 2
+
+                    # Compute class-specific scores
+                    class_scores = c * class_probs
+                    best_score, best_class = torch.max(class_scores, dim=0)
+
+                    if best_score > conf_thresh:
+                        boxes.append([x1, y1, x2, y2])
+                        scores.append(best_score.item())
+                        labels.append(best_class.item())
+
+        # Apply NMS per image
+        if len(boxes) > 0:
+            boxes = torch.tensor(boxes)
+            scores = torch.tensor(scores)
+            labels = torch.tensor(labels)
+
+            keep = nms(boxes, scores, iou_thresh)
+            boxes, scores, labels = boxes[keep], scores[keep], labels[keep]
+
+        final_detections.append((boxes, scores, labels))
+
+    return final_detections
+```
+
+#### Why this matters
+
+YOLOv1’s inference pipeline was extremely simple compared to R-CNN detectors. Instead of merging
+thousands of region proposals, YOLO only starts with 98 candidate boxes and filters them down with
+NMS. This is what allowed it to run at real-time speeds of ~45 FPS on a standard GPU.
+
+
+## Limitations
+
+As groundbreaking as YOLOv1 was, it also came with several limitations. The most important issue
+was **localization accuracy**. Because each grid cell could only predict two bounding boxes and was
+responsible for just one object, YOLO struggled in crowded scenes. If two objects’ centers fell
+into the same cell, only one could be predicted. This led to missed detections.
+
+Another problem was with **small objects**. Since the image was divided into a coarse 7 × 7 grid,
+each cell covered a large 64 × 64 region. Small objects that occupied only a few pixels often went
+undetected, because the cell’s features were too coarse to capture them.
+
+YOLOv1 also used a relatively simple squared-error loss for bounding boxes. This meant that large
+objects dominated the loss, while small localization mistakes on tiny objects could be ignored. The
+model often predicted boxes that were in the right region but did not align perfectly with the
+object.
+
+Finally, compared to two-stage detectors like Faster R-CNN, YOLOv1’s **accuracy was lower**,
+especially on benchmarks like Pascal VOC. The trade-off was clear: YOLO was much faster, but not
+the most precise.
+
+---
+
+## Reflections
+
+For me, YOLOv1 was less about the exact architecture and more about the mindset shift. Before YOLO,
+object detection felt like this complicated pipeline: generate proposals, extract features, classify
+them, refine them, then finally filter with NMS. YOLO came along and said, “why not just predict
+everything directly?” That idea, to cast detection as a single regression problem, was incredibly
+bold and refreshing.
+
+Yes, the first version had its flaws. It missed small objects, it wasn’t as accurate as Faster
+R-CNN, and its box predictions were sometimes shaky. But the speed it achieved — 45 frames per
+second — was unheard of at the time. For the first time, real-time object detection was possible on
+a standard GPU, and that opened the door to applications in robotics, self-driving, and live video
+processing.
+
+What I take away from YOLOv1 is that sometimes progress comes from **reframing the problem**, not
+just tweaking existing solutions. By stepping away from region proposals entirely, YOLO started a
+line of models that continues to dominate detection today. Later versions (YOLOv2, YOLOv3, YOLOv4…)
+all built on this foundation, but the original YOLOv1 will always be the model that changed how we
+think about object detection.

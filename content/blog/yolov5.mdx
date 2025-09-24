@@ -1,0 +1,418 @@
+---
+title: "YOLOv5"
+date: "2025-09-23"
+description: "YOLOv5, released by Ultralytics in 2020, focused on practicality: PyTorch implementation, modular design, modern augmentations, and production-ready deployment."
+tags: ["Object Detection", "YOLOv5", "PyTorch", "Deep Learning", "Real-Time Detection"]
+image: "/blog/yolov5/hero.png"
+---
+
+## Context, Motivation, and Problems Solved
+
+When YOLOv4 was released in early 2020, it carried forward the traditional YOLO spirit of speed and
+accuracy. But it was implemented in **Darknet (C/CUDA)**, which made it less accessible for many
+researchers and engineers who preferred frameworks like TensorFlow or PyTorch. Around the same time,
+**Ultralytics released YOLOv5**, entirely rewritten in PyTorch.
+
+This move was controversial because YOLOv5 wasn’t from Joseph Redmon or Alexey Bochkovskiy, the
+original YOLO authors. Despite that, it quickly became the most widely used version of YOLO in
+practice. The reason? It solved problems not just of detection accuracy, but of **usability**.
+
+The first problem YOLOv5 solved was **ease of training**. With YOLOv3 or YOLOv4, training required
+compiling Darknet and managing custom configs. YOLOv5 made training as simple as:
+
+    python train.py --data coco.yaml --weights yolov5s.pt --img 640
+
+This lowered the barrier for adoption dramatically.
+
+The second problem was **deployment**. YOLOv5 shipped with export tools for ONNX, CoreML, and
+TensorRT out of the box. This made it easy to move from research to production without painful
+conversions.
+
+The third problem was **modern augmentation and training tricks**. YOLOv5 introduced mosaic
+augmentation, mixup, auto-learning of anchors, and strong default hyperparameters. This meant
+better generalization without extra effort from the user.
+
+In short, YOLOv5 wasn’t just about accuracy. It was about making YOLO practical for **anyone** to
+train, fine-tune, and deploy, without needing to hack around low-level C code.
+
+
+## Architecture Breakdown
+
+### Step 1: Backbone (CSP-Darknet53)
+
+YOLOv5’s backbone is based on **CSP-Darknet53**, which is an evolution of the Darknet-53 used in
+YOLOv3. The “CSP” stands for **Cross Stage Partial networks**, a technique designed to improve
+gradient flow and reduce computational cost.
+
+---
+
+#### Key components
+
+- **Focus layer**: This clever trick slices the input image into patches and concatenates them
+  across the channel dimension. For example, a 640 × 640 × 3 image becomes 320 × 320 × 12. This
+  preserves spatial detail while reducing resolution early.  
+- **CSP Bottlenecks**: Residual blocks split the input feature map into two parts. One part goes
+  through several conv layers, the other bypasses them, and they are merged later. This balances
+  gradient flow and reduces redundancy.  
+- **SPP (Spatial Pyramid Pooling)**: At the end of the backbone, YOLOv5 applies max pooling at
+  multiple kernel sizes (e.g., 5×5, 9×9, 13×13) in parallel. This gives the network a large
+  receptive field without adding much computation.  
+
+---
+
+#### Example feature map flow
+
+For a 640 × 640 input:  
+- After the Focus layer → 320 × 320 × 12.  
+- Through CSP bottlenecks → progressively downsampled: 160 × 160, 80 × 80, 40 × 40, 20 × 20.  
+- Final feature map from SPP → 20 × 20 × 1024.  
+
+These multi-level features are then passed into the **neck** for further fusion.
+
+---
+
+#### Why this matters
+
+CSP-Darknet53 gave YOLOv5 a stronger and more efficient backbone than YOLOv3. The Focus layer
+captured fine details, CSP bottlenecks reduced computation while keeping accuracy, and SPP gave
+global context. Together, this backbone struck an excellent balance between **speed and accuracy**,
+which is why YOLOv5 became so popular in practice.
+
+
+### Step 2: Neck (PANet + FPN fusion)
+
+The neck of YOLOv5 is where features from different stages of the backbone are fused together before
+being passed into the detection head. It uses a combination of **Feature Pyramid Network (FPN)**
+and **Path Aggregation Network (PANet)** ideas.
+
+---
+
+#### FPN: Top-down pathway
+
+The FPN part takes high-level semantic features from deep layers and upsamples them. These are then
+combined with lower-level features via lateral connections.  
+
+- Example: A 20 × 20 deep feature map is upsampled to 40 × 40 and added to a shallower 40 × 40 map.
+- This ensures fine-grained spatial detail is combined with semantic richness.
+
+---
+
+#### PANet: Bottom-up pathway
+
+PANet strengthens low-level features by passing information upward. It adds bottom-up paths to the
+FPN, so that features at every scale can benefit from both fine detail and semantic context.  
+
+- Example: A 40 × 40 map is processed and passed back down to the 20 × 20 map.  
+- This bi-directional flow improves localization, especially for small and medium objects.
+
+---
+
+#### Resulting feature maps
+
+After the FPN + PANet fusion, YOLOv5 produces three main feature maps:  
+
+- 20 × 20 (stride 32) → large objects.  
+- 40 × 40 (stride 16) → medium objects.  
+- 80 × 80 (stride 8) → small objects.  
+
+These maps are then fed into the detection head.
+
+---
+
+#### Why this matters
+
+FPNs had already proven effective in two-stage detectors like Faster R-CNN with FPN. By adopting
+FPN + PANet, YOLOv5 brought strong **multi-scale feature fusion** into a one-stage, real-time
+detector. This made it much better at handling objects of all sizes, especially the small ones that
+YOLOv2 and YOLOv3 struggled with.
+
+
+### Step 3: Detection Head
+
+The detection head of YOLOv5 is responsible for turning the fused feature maps into actual bounding
+box predictions. It works at **three scales** (20 × 20, 40 × 40, 80 × 80), with each scale
+responsible for detecting objects of different sizes.
+
+---
+
+#### Predictions per anchor
+
+At each scale, YOLOv5 uses **3 anchors per grid cell**. Each anchor predicts:
+
+$
+(x, y, w, h, objectness) + C \; \\text\{class scores\}
+$
+
+For COCO (C = 80):  
+- Per anchor = 85 values.  
+- Per cell = 3 × 85 = 255 values.  
+
+---
+
+#### Example: 640 × 640 input
+
+- 80 × 80 × 255 = 1,632,000 values (small objects).  
+- 40 × 40 × 255 = 408,000 values (medium objects).  
+- 20 × 20 × 255 = 102,000 values (large objects).  
+
+Total = **2,142,000 values per image**.  
+
+---
+
+#### Decoding predictions
+
+The raw outputs \((t_x, t_y, t_w, t_h, t_o, t_c)\) are decoded relative to the anchors:
+
+$
+b_x = \frac{1}{S}(\sigma(t_x) + c_x), \quad b_y = \frac{1}{S}(\sigma(t_y) + c_y)
+$
+
+$
+b_w = \frac{1}{W}(p_w \cdot e^{t_w}), \quad b_h = \frac{1}{H}(p_h \cdot e^{t_h})
+$
+
+$
+\text{objectness} = \sigma(t_o), \quad \text{class probability} = \sigma(t_{c_i})
+$
+
+- \(S\): grid size (80, 40, or 20).  
+- \(p_w, p_h\): anchor priors.  
+- Anchors are chosen per scale: small at 80 × 80, large at 20 × 20.  
+
+---
+
+#### Why this matters
+
+By predicting at three scales with anchors tuned for each level, YOLOv5 achieves high recall across
+object sizes. Combined with the FPN + PANet neck, the detection head ensures that both small and
+large objects are represented with strong, fused features.
+
+
+### Step 4: Variants (s, m, l, x models)
+
+Unlike earlier YOLO versions that shipped as a single network, YOLOv5 was released in multiple
+variants to balance **speed and accuracy**. These are commonly referred to as:
+
+- **YOLOv5s** (small)  
+- **YOLOv5m** (medium)  
+- **YOLOv5l** (large)  
+- **YOLOv5x** (extra-large)  
+
+---
+
+#### Differences
+
+The main difference between these variants is the **depth and width multipliers**:
+
+- YOLOv5s: shallowest, fewest channels → fastest, least accurate.  
+- YOLOv5m: deeper, more channels → balanced.  
+- YOLOv5l: even deeper/wider → higher accuracy.  
+- YOLOv5x: largest model, maximum accuracy but slower.  
+
+---
+
+#### Example performance on COCO (approximate)
+
+- YOLOv5s: ~27 mAP @ 140 FPS  
+- YOLOv5m: ~37 mAP @ 100 FPS  
+- YOLOv5l: ~43 mAP @ 50 FPS  
+- YOLOv5x: ~45 mAP @ 30 FPS  
+
+---
+
+#### Why this matters
+
+The multiple variants gave users flexibility. If you needed real-time inference on an embedded
+device, YOLOv5s was the right choice. If you had a GPU and wanted the best accuracy, YOLOv5x was
+available. This modularity was one of the reasons YOLOv5 became so popular across research and
+industry.
+
+
+## Training Procedure
+
+YOLOv5’s training pipeline was one of its biggest strengths. Ultralytics designed it to be both
+powerful and easy to use, with modern data augmentations, loss functions, and auto-anchor
+optimization.
+
+---
+
+### Step 1: Data augmentations
+
+YOLOv5 introduced strong augmentations that greatly improved generalization:
+
+- **Mosaic augmentation**: combines 4 images into one large training sample. This exposes the model
+  to objects at different scales and contexts.  
+- **MixUp**: blends two images and their labels. This regularizes the network and reduces
+  overfitting.  
+- **HSV augmentation**: random color shifts in hue, saturation, and brightness.  
+- **Random scaling, cropping, flipping**: standard augmentations for robustness.  
+
+These were applied automatically with sensible defaults, which lowered the barrier to training.
+
+---
+
+### Step 2: Auto-anchor learning
+
+Instead of requiring manual k-means clustering, YOLOv5 could automatically **evolve anchors** during
+training.  
+
+- Starts with a set of candidate anchors.  
+- Uses k-means + a genetic algorithm to optimize IoU with dataset boxes.  
+- Produces dataset-specific anchors that improve localization accuracy.  
+
+This was a major usability win compared to YOLOv2/YOLOv3, where anchors had to be precomputed.
+
+---
+
+### Step 3: Loss functions
+
+YOLOv5 used more advanced losses than its predecessors:
+
+- **CIoU loss** for bounding box regression:  
+  $
+  L_{box} = 1 - CIoU(b_{pred}, b_{gt})
+  $  
+  CIoU accounts not just for overlap but also for center distance and aspect ratio.  
+
+- **Binary Cross Entropy (BCE)** for objectness and classification:  
+  Each class is treated as independent, similar to YOLOv3, allowing multi-label predictions.  
+
+---
+
+### Step 4: Multi-scale training
+
+Like YOLOv2 and YOLOv3, YOLOv5 also trained with multi-scale inputs. Every 10 batches, input
+resolution was varied between 320 and 640 (multiples of 32). This made the model robust to
+different inference sizes.
+
+---
+
+### Step 5: Training simplicity
+
+Training was deliberately kept simple. A default COCO training run could be started with:
+
+    python train.py --img 640 --batch 16 --epochs 300 --data coco.yaml --weights yolov5s.pt
+
+This ease of use was one of YOLOv5’s biggest advantages over previous versions.
+
+---
+
+### Why this matters
+
+By combining strong augmentations, better loss functions, automatic anchor optimization, and simple
+training commands, YOLOv5 democratized object detection. It wasn’t just about accuracy — it was
+about making training accessible to anyone with a GPU and a dataset.
+
+
+## Implementation Notes
+
+YOLOv5’s codebase is written in PyTorch, which makes it much more modular and readable than older
+Darknet-based YOLO versions. Let’s look at some key pieces.
+
+---
+
+### Step 1: Modular model definition
+
+YOLOv5 is structured into three components: **backbone, neck, head**. Each part is defined in a
+YAML config file and then constructed dynamically.
+
+# Example YOLOv5s config snippet (simplified)
+backbone:
+  [[-1, 1, Focus, [64, 3]],   # Focus layer
+   [-1, 1, Conv, [128, 3, 2]],
+   [-1, 3, C3, [128]],        # CSP bottleneck
+   [-1, 1, Conv, [256, 3, 2]],
+   [-1, 9, C3, [256]],        # deeper CSP blocks
+  ]
+
+head:
+  [[-1, 1, Conv, [512, 3, 2]],
+   [-1, 3, C3, [512]],
+   [-1, 1, SPP, [512, [5, 9, 13]]], # spatial pyramid pooling
+   [-1, 1, Detect, [80, anchors]],  # detection head
+  ]
+
+This design makes it easy to switch architectures or modify layers just by editing the YAML file.
+
+---
+
+### Step 2: Augmentation pipeline
+
+YOLOv5’s `datasets.py` handles powerful augmentations:
+
+```python
+def load_image_and_labels():
+    img, labels = load_base_image()
+    if mosaic_enabled:
+        img, labels = mosaic_augmentation(img, labels)
+    if mixup_enabled:
+        img, labels = mixup(img, labels)
+    img = hsv_augment(img)
+    img, labels = random_flip(img, labels)
+    return img, labels
+```
+
+These augmentations (mosaic, mixup, hsv) are applied on the fly during training, meaning the model
+sees fresh, diverse data every epoch.
+
+---
+
+### Step 3: Anchor evolution
+
+YOLOv5 includes an `autoanchor` function that evolves anchors during training:
+
+```python
+def evolve_anchors(dataset_boxes, generations=1000):
+    anchors = initialize_random()
+    for g in range(generations):
+        fitness = compute_iou(dataset_boxes, anchors)
+        anchors = mutate(anchors) if fitness improves
+    return anchors
+```
+
+Instead of requiring manual preprocessing (like YOLOv2), anchors adapt automatically to the dataset,
+making the training process seamless.
+
+---
+
+### Why this matters
+
+YOLOv5’s PyTorch implementation turned YOLO into a **framework** rather than just a paper model.
+You could edit configs, plug in augmentations, or run anchor evolution without touching low-level
+C code. This engineering-first design is why YOLOv5 became the most widely used YOLO version.
+
+
+## Limitations
+
+Even though YOLOv5 became the most widely adopted YOLO, it wasn’t without limitations. The first
+was the **controversy over “officialness.”** Since it wasn’t released by the original YOLO authors,
+many in the community debated whether it should even be called “YOLOv5.” Despite this, it became
+the de facto standard because of its usability.
+
+The second limitation was **model size and speed trade-offs.** While YOLOv5s was fast, the larger
+variants (YOLOv5l, YOLOv5x) were slower and heavier than YOLOv3-tiny or other lightweight
+detectors. This made them less practical for edge devices without hardware acceleration.
+
+Another limitation was that YOLOv5 was still **anchor-based.** Although it had auto-anchor learning,
+anchor-free methods like CenterNet and FCOS were beginning to show competitive performance with
+simpler designs.
+
+Finally, YOLOv5 was **community-driven**, which meant rapid updates but sometimes fragmentation.
+Different forks of the repo appeared, and not all improvements were standardized.
+
+---
+
+## Reflections
+
+For me, YOLOv5 marks the point where YOLO shifted from being a **research project** to being an
+**engineering framework.** Earlier versions focused on new detection ideas, while YOLOv5 focused on
+making YOLO practical, modular, and easy to deploy in real-world systems.
+
+The PyTorch implementation, the clean modular configs, the strong default augmentations, and the
+export tools made it accessible to anyone with a GPU. This is why it exploded in popularity across
+research labs, startups, and industry applications.
+
+Even though YOLOv5 didn’t come from the original authors, it shaped the YOLO ecosystem more than
+any version before it. In many ways, it democratized object detection, lowering the barrier for
+engineers and hobbyists alike. If YOLOv3 was about proving single-stage detectors could be accurate,
+YOLOv5 was about proving they could be **usable at scale.**

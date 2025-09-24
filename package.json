@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "next dev",
+    "dev": "contentlayer build && next dev",
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
@@ -27,6 +27,7 @@
     "clsx": "^2.1.1",
     "contentlayer": "^0.3.4",
     "framer-motion": "^12.23.12",
+    "katex": "^0.16.22",
     "lucide-react": "^0.542.0",
     "motion": "^12.23.12",
     "next": "15.5.2",

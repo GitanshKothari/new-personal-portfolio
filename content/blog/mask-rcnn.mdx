@@ -1,0 +1,950 @@
+---
+title: "Mask R-CNN"
+date: "2025-09-23"
+description: "Mask R-CNN extends Faster R-CNN by adding a parallel mask prediction branch and RoI Align, enabling accurate instance segmentation on top of object detection."
+tags: ["Object Detection", "Mask R-CNN", "Instance Segmentation", "Deep Learning", "CNN"]
+image: "/blog/mark-rcnn/hero.png"
+---
+
+## Context and Motivation
+
+Faster R-CNN was a major step forward because it combined region proposals and classification
+into one deep learning framework. But despite its accuracy, it had a clear limitation: it could
+only draw bounding boxes around objects. A bounding box is useful, but it is a very rough way to
+represent object shape. Think about a person riding a bicycle. The bounding box will cover both
+the rider and the bike, but it does not tell us which pixels belong to the person and which belong
+to the bike.
+
+In many applications, this coarse representation is not enough. Self-driving cars, for example,
+need to know the exact shape of pedestrians and other vehicles for safe navigation. In medical
+imaging, it is important to mark the precise region of a tumor, not just a rectangle around it.
+This is where segmentation comes in. Instead of just detecting objects, segmentation aims to label
+each pixel. Semantic segmentation does this at the category level, but it cannot separate multiple
+instances of the same class. What we really need is **instance segmentation**: identifying each
+object and outlining its pixels individually.
+
+Mask R-CNN was introduced to solve exactly this problem. The idea was to take the strong two stage
+framework of Faster R-CNN and extend it by adding a branch that predicts masks for each region of
+interest. At the same time, the authors addressed a key weakness of Faster R-CNN: the small
+misalignments caused by RoI Pooling. They introduced RoI Align, a simple but crucial change that
+made pixel-level mask predictions possible. The result was a model that could not only detect
+objects and refine bounding boxes, but also predict accurate binary masks for every object in an
+image.
+
+## Architecture Breakdown
+
+Mask R-CNN builds directly on Faster R-CNN, but with some important upgrades that allow it to
+predict accurate masks. The overall flow is still two stage: first generate proposals, then
+classify them and predict masks. Let us walk through the steps in detail.
+
+
+### Step 1: Backbone CNN with Feature Pyramid Network
+
+Mask R-CNN uses ResNet as its backbone, but with an important addition: the Feature Pyramid Network
+(FPN). The idea of the FPN is to create multi-scale feature maps so that both small and large
+objects can be represented effectively. Without the FPN, deep layers of the backbone lose too much
+spatial resolution, which makes detecting small objects difficult.
+
+
+#### How ResNet alone works
+
+Suppose we input an 800 × 800 image into ResNet-50. After each stage of convolution and pooling,
+the spatial size shrinks while the number of channels grows:
+
+- After conv2 → 200 × 200 × 256 feature map (stride 4).
+- After conv3 → 100 × 100 × 512 feature map (stride 8).
+- After conv4 → 50 × 50 × 1024 feature map (stride 16).
+- After conv5 → 25 × 25 × 2048 feature map (stride 32).
+
+Now imagine there is a 32 × 32 object in the input image.  
+At stride 32, this object shrinks to 32 ÷ 32 = 1 pixel. That is not enough detail to localize it.
+On the other hand, the shallow conv2 layer has fine detail, but weaker semantic features. This
+mismatch is exactly what the FPN solves.
+
+
+#### How FPN is built
+
+The FPN introduces a **top-down pathway with lateral connections**. The idea is to combine the
+strong semantics of deep layers with the fine resolution of shallow layers.
+
+<figure>
+  <img src="/blog/mask-rcnn/fpn.png" alt="Feature Pyramid Network" />
+  <figcaption>FPN structure from the original paper</figcaption>
+</figure>
+
+
+Here is the step-by-step construction:
+
+1. Start with conv5 (25 × 25 × 2048). Use a 1 × 1 convolution to reduce it to 256 channels.
+   This becomes **P5**.
+
+2. Upsample P5 by a factor of 2 (25 × 25 → 50 × 50). Add it elementwise to conv4, which is also
+   reduced to 256 channels with a 1 × 1 convolution. This forms **P4**:
+
+    $P_4 = W_1 \cdot C_4 + \text{Upsample}(P_5)$
+
+3. Repeat the process: upsample P4 (50 × 50 → 100 × 100) and add it to conv3 (after 1 × 1 conv).
+   This forms **P3**.
+
+4. Again: upsample P3 (100 × 100 → 200 × 200) and add it to conv2 (after 1 × 1 conv).
+   This forms **P2**.
+
+Each Pi is passed through a 3 × 3 convolution to clean up aliasing artifacts. The final pyramid
+has consistent 256 channel feature maps:
+
+- P2 → 200 × 200 × 256
+- P3 → 100 × 100 × 256
+- P4 → 50 × 50 × 256
+- P5 → 25 × 25 × 256
+
+
+#### Assigning regions to pyramid levels
+
+Once the pyramid is built, the model decides which feature map to use for each region. The level
+is chosen based on the size of the region using the formula:
+
+$k = \lfloor k_0 + \log_2 \left( \frac{\sqrt{wh}}{224} \right) \rfloor$
+
+where $w$ and $h$ are the width and height of the region, and $k_0 = 4$ (reference to P4).
+
+Examples:
+
+- A 32 × 32 region → $\sqrt{wh} = 32$. Plugging in gives $k = 2$. Use **P2**.
+- A 224 × 224 region → $\sqrt{wh} = 224$. Plugging in gives $k = 4$. Use **P4**.
+- A 512 × 512 region → $\sqrt{wh} = 512$. Plugging in gives $k = 5$. Use **P5**.
+
+
+#### Why this matters
+
+The FPN makes it possible to detect objects of all scales with one unified backbone. Small objects
+are processed at higher resolution maps, while large objects use coarser maps with stronger
+semantics. The important thing to note is that the FPN is still part of the **backbone**. It does
+not generate proposals — that job still belongs to the RPN, which we will cover in Step 2.
+
+
+### Step 2: Region Proposal Network
+
+The Region Proposal Network in Mask R-CNN works the same way as in Faster R-CNN: a small 3 × 3
+sliding window scans over the feature map, and for each spatial location it predicts a set of
+anchors. Each anchor is scored with an objectness score (object vs background) and refined with
+bounding box deltas.
+
+What changes in Mask R-CNN is that the RPN now operates on **all levels of the FPN pyramid**. For
+example, consider the feature maps we just built:
+
+- P2 → 200 × 200 (stride 4)
+- P3 → 100 × 100 (stride 8)
+- P4 → 50 × 50 (stride 16)
+- P5 → 25 × 25 (stride 32)
+
+Anchors are generated at every location in each map. Suppose we use 3 scales and 3 aspect ratios.
+That means 9 anchors per location. On P2, with 200 × 200 locations, that is 360,000 anchors. On
+P3, with 100 × 100, it is 90,000 anchors, and so on. Across all pyramid levels, the RPN easily
+handles half a million anchors in one image.
+
+This might sound expensive, but the convolutional operations are shared, so the cost is
+manageable. After scoring and refining, proposals from all pyramid levels are merged. Non Maximum
+Suppression is then applied to filter redundant boxes, and the top 1000 to 2000 proposals are
+selected for the next stage.
+
+The advantage of this design is clear:  
+- Small objects are proposed from high-resolution maps like P2.  
+- Large objects are proposed from coarse maps like P5.  
+
+By tying the RPN to the pyramid, Mask R-CNN inherits the multi-scale power of FPN while keeping
+the same efficient proposal mechanism as Faster R-CNN.
+
+
+### Step 3: RoI Align
+
+One of the key contributions of Mask R-CNN is **RoI Align**, which fixes the spatial misalignment
+introduced by RoI Pooling. To understand why it is important, let us carefully walk through the
+difference.
+
+
+#### The problem with RoI Pooling
+
+Suppose the RPN proposes a region of interest on the feature map with floating point coordinates:
+(15.2, 23.7, 47.8, 68.3). These numbers represent the top-left and bottom-right corners of the
+proposal on the feature map.
+
+In **RoI Pooling**, these values are rounded to integers: (15, 24, 48, 68). The region is then
+divided into a fixed grid, say 7 × 7, and max pooling is applied in each bin. The issue is that
+rounding shifts the boundaries. A pixel shift of even 0.5 in the feature map corresponds to a
+16-pixel shift in the input image when the stride is 32. For masks, this tiny shift can mean that
+object boundaries no longer line up correctly.
+
+
+#### How RoI Align fixes it
+
+RoI Align removes rounding and uses **bilinear interpolation** instead of max pooling. Let us work
+through an example.
+
+Take the same RoI: (15.2, 23.7, 47.8, 68.3). We want to pool it into a 2 × 2 grid (to keep the
+math simple; in practice it is usually 7 × 7).
+
+1. Divide the RoI into bins:  
+   - Width = 47.8 – 15.2 = 32.6  
+   - Height = 68.3 – 23.7 = 44.6  
+   - Each bin is therefore 16.3 × 22.3 in size.
+
+2. For each bin, select four sampling points at evenly spaced fractional coordinates.  
+   Example: the top-left bin might include points like (16.1, 25.9), (24.2, 25.9), (16.1, 36.3),
+   (24.2, 36.3).
+
+3. Compute the feature value at each fractional coordinate using bilinear interpolation.  
+   Suppose (24.2, 25.9) lies between four neighboring pixels with values v1, v2, v3, v4. Then:
+
+   $V(x, y) = \sum_{i=1}^{4} w_i \cdot v_i$
+
+   where the weights $w_i$ are proportional to the distances from (x, y) to each pixel center.
+
+4. Take the average of the four sampled values to get the output for that bin.
+
+Repeating this for all bins gives a perfectly aligned 2 × 2 feature map (or 7 × 7 in practice).
+No rounding, no quantization, just smooth interpolation.
+
+
+#### Why it matters
+
+For bounding boxes, the difference between RoI Pooling and RoI Align is small. But for masks,
+pixel accuracy is critical. Without RoI Align, masks often look jagged and misaligned with the
+object edges. With RoI Align, the masks line up smoothly with boundaries, which was essential for
+the success of Mask R-CNN.
+
+
+#### Visual reference
+
+The original Mask R-CNN paper has a simple and clear figure comparing RoI Pooling and RoI Align:  
+[Figure 3 in the paper](https://arxiv.org/pdf/1703.06870.pdf) shows how quantization misaligns
+features and how RoI Align fixes it.
+
+
+
+### Step 4: Detection Head
+
+Once RoI Align has converted each proposal into a fixed-size feature map, these features are fed
+into the detection head. The detection head is responsible for two tasks: predicting the class of
+the object and refining the bounding box coordinates. This part of the architecture is essentially
+the same as in Faster R-CNN.
+
+
+
+#### Input and shape
+
+Suppose the backbone is ResNet with FPN and we pool each proposal into a 7 × 7 grid. If the FPN
+outputs 256 channels, then each RoI after RoI Align has shape 256 × 7 × 7. Flattening this gives
+12,544 features per RoI.
+
+
+
+#### Fully connected layers
+
+These features are passed through two fully connected layers (often with 1024 or 4096 hidden
+units). The network learns abstract, high-level representations of the region that are useful for
+classification and box regression.
+
+$\text{RoI feature} \in \mathbb{R}^{256 \times 7 \times 7}$
+$\;\;\rightarrow\;\; \mathbb{R}^{12544}$
+$\;\;\rightarrow\;\; \mathbb{R}^{1024}$
+$\;\;\rightarrow\;\; \mathbb{R}^{1024}$
+
+
+
+#### Classification branch
+
+One branch of the detection head outputs class scores. If there are K object categories, the
+classifier outputs K + 1 probabilities (the +1 is for the background class). For example, if
+there are 80 classes as in COCO, the classifier outputs an 81-dimensional vector for each RoI.
+
+The highest probability decides the predicted class.
+
+
+
+#### Bounding box regression branch
+
+The second branch outputs bounding box adjustments. For each class, it predicts four values:
+$\Delta x, \Delta y, \Delta w, \Delta h$. These represent how to shift and resize the RoI to
+better fit the object. In COCO with 80 classes, this branch outputs 80 × 4 = 320 numbers per RoI.
+
+At inference time, only the regression for the predicted class is used to refine the bounding box.
+
+
+
+#### Why keep it this way?
+
+The detection head in Mask R-CNN is deliberately left unchanged from Faster R-CNN. The logic is
+simple: Faster R-CNN already gave state-of-the-art results for detection. Instead of reinventing
+this part, the authors extended it by adding a **third branch** for masks, which we will cover in
+the next step. This modular design made it possible for Mask R-CNN to inherit the strong detection
+performance of Faster R-CNN while extending it to segmentation.
+
+### Step 5: Mask Head
+
+The main innovation of Mask R-CNN is the addition of a **mask prediction branch**. This branch runs
+in parallel with the detection head and produces a pixel-level binary mask for each object. While
+the detection head only outputs class scores and bounding box refinements, the mask head predicts
+a much finer representation: the outline of the object itself.
+
+
+
+#### Input and shape
+
+After RoI Align, each proposal has a feature map of size 256 × 14 × 14 (the paper increased the
+resolution from 7 × 7 in Faster R-CNN to 14 × 14 for more spatial detail). These features are fed
+into the mask head.
+
+
+
+#### Network structure
+
+The mask head is a small Fully Convolutional Network (FCN). Instead of fully connected layers, it
+uses convolutional layers so that spatial information is preserved. A typical structure is:
+
+- 4 convolutional layers, each 3 × 3 with 256 filters.  
+- 1 deconvolution (transpose convolution) layer that upsamples by 2×.  
+- 1 final 1 × 1 convolution layer to output masks.
+
+
+
+#### Output dimensions
+
+If there are K classes, the mask head outputs K binary masks for each RoI. Each mask is 28 × 28
+pixels in size. For example, in COCO with 80 classes, the output per RoI is 80 × 28 × 28.
+
+At inference time, only the mask corresponding to the predicted class (from the detection head) is
+kept. For example, if the detection head predicts “person” for a proposal, we take only the “person”
+mask from the 80 outputs.
+
+
+
+#### Training the mask head
+
+The mask branch is trained with a per-pixel **binary cross entropy loss**. For each positive RoI,
+the ground truth mask is cropped to the RoI and resized to 28 × 28. Only the mask for the true
+class is used in the loss — this prevents competition between classes and makes training more
+stable.
+
+
+
+#### Why this works
+
+By separating the mask prediction into its own branch, Mask R-CNN keeps the detection head focused
+on classification and bounding box refinement, while the mask head specializes in pixel-level
+segmentation. This parallel design is efficient because both branches share the same RoI features
+from RoI Align. The 28 × 28 mask is coarse compared to the original image, but it can be
+upsampled later to the input resolution. Even at this size, it is accurate enough to capture fine
+object boundaries.
+
+
+
+#### Visual reference
+
+The architecture of the mask head is shown clearly in the original Mask R-CNN paper:  
+[Figure 2 in the paper](https://arxiv.org/pdf/1703.06870.pdf) illustrates the three parallel
+branches — classification, bounding box regression, and mask prediction.
+
+
+## Training Procedure
+
+Training Mask R-CNN is more involved than Faster R-CNN because it now has three main objectives:
+classification, bounding box regression, and mask prediction. The key idea is to optimize all of
+them together with a multi-task loss.
+
+
+
+#### Step 1: RPN loss
+
+The Region Proposal Network is trained the same way as in Faster R-CNN. At each anchor, the RPN
+predicts whether the anchor is foreground (contains an object) or background. The classification
+loss is a binary cross entropy, and the regression loss adjusts anchor coordinates with a smooth
+L1 loss.
+
+$
+L_{\text{RPN}} = L_{\text{cls}}^{\text{RPN}} + L_{\text{reg}}^{\text{RPN}}
+$
+
+where  
+- $L_{\text{cls}}^{\text{RPN}} = - \big[ y \log p + (1-y)\log(1-p) \big]$
+- $L_{\text{reg}}^{\text{RPN}} = \text{smooth}_{L1}(t - t^*)$
+
+Here $y \in \{0,1\}$ is the ground truth label, $p$ is the predicted probability, $t$ are the
+predicted box offsets, and $t^*$ are the ground truth offsets.
+
+
+
+#### Step 2: Detection head loss
+
+The detection head also has two branches. The classification branch predicts a distribution over
+K + 1 categories (K object classes plus background). The loss here is a softmax cross entropy:
+
+$
+L_{\text{cls}}^{\text{det}} = - \sum_{c=1}^{K+1} y_c \log p_c
+$
+
+where $y_c$ is the ground truth one-hot vector and $p_c$ are the predicted probabilities.
+
+The bounding box regression branch predicts 4 values per class:  
+$\Delta x, \Delta y, \Delta w, \Delta h$. Only the regression for the true class is used in the
+loss, again with smooth L1:
+
+$
+L_{\text{reg}}^{\text{det}} = \text{smooth}_{L1}(t - t^*)
+$
+
+
+
+#### Step 3: Mask loss
+
+The mask branch predicts a binary mask for each class. Suppose the RoI is assigned to class $k$.
+Then only the kth mask is used in the loss, while the others are ignored. This prevents the mask
+head from wasting capacity on irrelevant classes.
+
+The loss is a pixel-wise binary cross entropy averaged over all pixels in the 28 × 28 mask:
+
+$
+L_{\text{mask}} = - \frac{1}{m^2} \sum_{i,j} \big[ y_{ij}\log \hat{y}_{ij} + (1-y_{ij})\log (1-\hat{y}_{ij}) \big]
+$
+
+where $m = 28$, $y_{ij}$ is the ground truth mask value at pixel (i,j), and $\hat{y}_{ij}$ is
+the predicted probability.
+
+
+
+#### Step 4: Final loss
+
+The total loss is simply the sum of all the components:
+
+$
+L = L_{\text{RPN}} + L_{\text{cls}}^{\text{det}} + L_{\text{reg}}^{\text{det}} + L_{\text{mask}}
+$
+
+This allows the backbone, RPN, detection head, and mask head to be trained end-to-end in one
+framework. Gradients flow through all branches, and the shared backbone features are updated in a
+way that benefits every task.
+
+
+
+#### Training details
+
+- **Mini-batches**: Typically 256 RoIs per image are sampled for the detection head, balanced
+  between positive and negative samples.  
+- **Mask targets**: Ground truth masks are cropped to the RoI and resized to 28 × 28.  
+- **Backbone initialization**: ResNet is usually pretrained on ImageNet before being fine-tuned
+  within Mask R-CNN.  
+- **Optimization**: SGD with momentum is used, often with learning rate schedules like step decay.  
+
+By training all tasks jointly, Mask R-CNN learns representations that are useful for detection
+and segmentation at the same time, without the need for separate networks.
+
+
+## Implementation Notes
+
+Let us now translate Mask R-CNN into practical steps. We will write down the code structure as if
+we were implementing the model from scratch in PyTorch. This helps connect the theory to actual
+practice. We start with the backbone and the Feature Pyramid Network (FPN).
+
+
+
+### Step 1: Backbone CNN with Feature Pyramid Network
+
+Mask R-CNN uses ResNet as the backbone, often ResNet-50 or ResNet-101. To build an FPN on top of
+it, we need to extract feature maps at different stages of the ResNet. These are usually taken
+from conv2, conv3, conv4, and conv5. Their strides are 4, 8, 16, and 32 relative to the input
+image.
+
+```python
+import torch
+import torch.nn as nn
+import torchvision.models as models
+
+class ResNetBackbone(nn.Module):
+    def __init__(self, name="resnet50"):
+        super().__init__()
+        # Load pretrained ResNet
+        resnet = getattr(models, name)(pretrained=True)
+        
+        # Keep only the convolutional layers, discard final avgpool + fc
+        # ResNet is structured as: stem -> layer1 -> layer2 -> layer3 -> layer4
+        self.stem = nn.Sequential(
+            resnet.conv1,  # 7x7 conv
+            resnet.bn1,
+            resnet.relu,
+            resnet.maxpool
+        )
+        self.layer1 = resnet.layer1  # conv2, stride 4
+        self.layer2 = resnet.layer2  # conv3, stride 8
+        self.layer3 = resnet.layer3  # conv4, stride 16
+        self.layer4 = resnet.layer4  # conv5, stride 32
+
+    def forward(self, x):
+        c1 = self.stem(x)    # stride 4
+        c2 = self.layer1(c1) # stride 4 (conv2)
+        c3 = self.layer2(c2) # stride 8 (conv3)
+        c4 = self.layer3(c3) # stride 16 (conv4)
+        c5 = self.layer4(c4) # stride 32 (conv5)
+        return c2, c3, c4, c5
+```
+
+At this point, for an 800 × 800 input image:
+
+- c2 has shape [B, 256, 200, 200]
+- c3 has shape [B, 512, 100, 100]
+- c4 has shape [B, 1024, 50, 50]
+- c5 has shape [B, 2048, 25, 25]
+
+### Building the FPN layers
+
+We now build the top-down pathway with lateral connections. The idea is to reduce each feature
+map to 256 channels with a 1×1 convolution, then progressively upsample and add to the next
+shallower map.
+
+```python
+class FPN(nn.Module):
+    def __init__(self, in_channels_list, out_channels=256):
+        """
+        in_channels_list: [256, 512, 1024, 2048] from ResNet stages
+        out_channels: usually 256
+        """
+        super().__init__()
+        # 1x1 conv layers for lateral connections
+        self.lateral_convs = nn.ModuleList([
+            nn.Conv2d(in_ch, out_channels, kernel_size=1)
+            for in_ch in in_channels_list
+        ])
+        
+        # 3x3 conv layers to smooth after merging
+        self.output_convs = nn.ModuleList([
+            nn.Conv2d(out_channels, out_channels, kernel_size=3, padding=1)
+            for _ in in_channels_list
+        ])
+
+    def forward(self, inputs):
+        # inputs: [c2, c3, c4, c5]
+        c2, c3, c4, c5 = inputs
+        
+        # Step 1: reduce c5 to 256 channels
+        p5 = self.lateral_convs[3](c5)
+        
+        # Step 2: build P4 by upsampling P5 and adding to c4
+        p4 = self.lateral_convs[2](c4) + nn.functional.interpolate(
+            p5, size=c4.shape[-2:], mode="nearest"
+        )
+        
+        # Step 3: build P3
+        p3 = self.lateral_convs[1](c3) + nn.functional.interpolate(
+            p4, size=c3.shape[-2:], mode="nearest"
+        )
+        
+        # Step 4: build P2
+        p2 = self.lateral_convs[0](c2) + nn.functional.interpolate(
+            p3, size=c2.shape[-2:], mode="nearest"
+        )
+        
+        # Final 3x3 conv to smooth
+        p5 = self.output_convs[3](p5)
+        p4 = self.output_convs[2](p4)
+        p3 = self.output_convs[1](p3)
+        p2 = self.output_convs[0](p2)
+        
+        return p2, p3, p4, p5
+```
+
+### Checking the shapes
+
+If the input image is 800 × 800, the output pyramid maps are:
+
+- P2 → [B, 256, 200, 200]
+- P3 → [B, 256, 100, 100]
+- P4 → [B, 256, 50, 50]
+- P5 → [B, 256, 25, 25]
+
+All of them have the same depth (256 channels) but different resolutions. These maps are now ready
+to be used by the RPN in the next step.
+
+Example usage:
+```python
+backbone = ResNetBackbone("resnet50")
+fpn = FPN([256, 512, 1024, 2048], 256)
+
+x = torch.randn(1, 3, 800, 800)  # batch of 1 image
+c2, c3, c4, c5 = backbone(x)
+p2, p3, p4, p5 = fpn([c2, c3, c4, c5])
+
+print(p2.shape, p3.shape, p4.shape, p5.shape)
+# torch.Size([1, 256, 200, 200])
+# torch.Size([1, 256, 100, 100])
+# torch.Size([1, 256, 50, 50])
+# torch.Size([1, 256, 25, 25])
+```
+
+This matches exactly what we expect from the FPN construction we described earlier.
+
+### Step 2: Region Proposal Network (RPN)
+
+The Region Proposal Network is applied on each FPN level (P2, P3, P4, P5). At every location on
+these maps, the RPN places multiple **anchors** of different scales and aspect ratios. For each
+anchor, it predicts two things: whether it contains an object (objectness score) and how to refine
+its coordinates (box regression deltas).
+
+
+
+### RPN Head
+
+The RPN head is small and fully convolutional. It has three parts:
+
+1. A 3×3 convolution that processes the feature map at each location.  
+2. A classification layer that predicts foreground vs background for every anchor.  
+3. A regression layer that predicts four offsets (Δx, Δy, Δw, Δh) for every anchor.
+
+```python
+class RPNHead(nn.Module):
+    def __init__(self, in_channels, num_anchors):
+        super().__init__()
+        self.conv = nn.Conv2d(in_channels, 256, kernel_size=3, padding=1)
+        self.cls_logits = nn.Conv2d(256, num_anchors * 2, kernel_size=1)
+        self.bbox_pred = nn.Conv2d(256, num_anchors * 4, kernel_size=1)
+
+    def forward(self, x):
+        # x: [B, 256, H, W]
+        t = nn.functional.relu(self.conv(x))
+        logits = self.cls_logits(t)    # [B, num_anchors*2, H, W]
+        bbox = self.bbox_pred(t)       # [B, num_anchors*4, H, W]
+        return logits, bbox
+```
+
+If we use 3 scales × 3 aspect ratios = 9 anchors per location, then:
+- cls_logits outputs 18 channels (9 anchors × 2 classes).
+- bbox_pred outputs 36 channels (9 anchors × 4 coords).
+
+### Anchor generation
+
+For every location in each pyramid map, we generate anchors. Each anchor is centered at the pixel
+location, with predefined scales and aspect ratios. Let’s write a generator.
+
+```python
+import itertools
+import torch
+
+def generate_anchors(base_size, scales, ratios, feat_h, feat_w, stride):
+    anchors = []
+    for y, x in itertools.product(range(feat_h), range(feat_w)):
+        center_x, center_y = x * stride, y * stride
+        for scale in scales:
+            for ratio in ratios:
+                w = scale * (ratio ** 0.5)
+                h = scale / (ratio ** 0.5)
+                anchors.append([
+                    center_x - w / 2, center_y - h / 2,
+                    center_x + w / 2, center_y + h / 2
+                ])
+    return torch.tensor(anchors)  # [N, 4]
+```
+
+### Example: Number of anchors
+
+On P3 (stride = 8, feature map size 100 × 100), with 9 anchors per location:
+
+$
+100 \times 100 \times 9 = 90{,}000 \; \text{anchors}
+$
+
+Across all pyramid levels P2–P5, this easily adds up to more than 500,000 anchors per image.
+
+
+
+### Bounding box decoding
+
+The RPN outputs regression deltas that adjust anchors into refined boxes.  
+Given an anchor $(x_a, y_a, w_a, h_a)$ and predicted deltas $(t_x, t_y, t_w, t_h)$, the refined
+box is computed as:
+
+$
+x = x_a + t_x \cdot w_a
+$
+
+$
+y = y_a + t_y \cdot h_a
+$
+
+$
+w = w_a \cdot e^{t_w}
+$
+
+$
+h = h_a \cdot e^{t_h}
+$
+
+The final box coordinates are then reconstructed from the new center $(x, y)$ and dimensions
+$(w, h)$.
+
+```python
+def apply_deltas_to_anchors(anchors, deltas):
+    # anchors: [N, 4], deltas: [N, 4]
+    xa = (anchors[:, 0] + anchors[:, 2]) / 2
+    ya = (anchors[:, 1] + anchors[:, 3]) / 2
+    wa = anchors[:, 2] - anchors[:, 0]
+    ha = anchors[:, 3] - anchors[:, 1]
+
+    tx, ty, tw, th = deltas[:, 0], deltas[:, 1], deltas[:, 2], deltas[:, 3]
+
+    x = xa + tx * wa
+    y = ya + ty * ha
+    w = wa * torch.exp(tw)
+    h = ha * torch.exp(th)
+
+    x1 = x - w / 2
+    y1 = y - h / 2
+    x2 = x + w / 2
+    y2 = y + h / 2
+
+    return torch.stack([x1, y1, x2, y2], dim=1)
+```
+
+### Non-Maximum Suppression (NMS)
+
+After generating boxes, many overlap. NMS is applied to keep the top-scoring boxes and remove
+redundant ones.
+
+```python
+from torchvision.ops import nms
+
+def filter_proposals(boxes, scores, nms_thresh=0.7, top_n=2000):
+    keep = nms(boxes, scores, iou_threshold=nms_thresh)
+    keep = keep[:top_n]  # keep top N proposals
+    return boxes[keep], scores[keep]
+```
+
+### Putting it together
+
+For each pyramid map P2–P5:
+
+- Generate anchors for that map.
+- Pass the map through the RPN head → get logits and deltas.
+- Decode deltas into refined boxes.
+- Apply NMS.
+- Collect top proposals.
+
+The proposals from all pyramid levels are then merged and passed to RoI Align.
+
+This completes Step 2. The RPN, when combined with FPN, gives a balanced set of proposals for
+objects of all sizes - small objects from P2, large objects from P5.
+
+### Step 3: RoI Align
+
+RoI Align replaces RoI Pooling to fix spatial misalignment. The key difference is that instead of
+rounding proposal coordinates to integers, RoI Align uses the exact floating-point values and
+samples the features with bilinear interpolation.
+
+
+
+#### The problem with RoI Pooling
+
+Suppose the RPN proposes a region of interest with coordinates:
+
+$
+(x_1, y_1, x_2, y_2) = (15.2, 23.7, 47.8, 68.3)
+$
+
+RoI Pooling rounds these to integers:
+
+$
+(15, 24, 48, 68)
+$
+
+This rounding shifts the region boundaries. With a stride of 32 in the backbone, a 0.5 pixel shift
+at the feature map level can mean a 16-pixel misalignment in the input image. This is catastrophic
+for mask prediction, where every pixel matters.
+
+
+
+#### How RoI Align works
+
+Let us say we want to pool this region into a 2 × 2 output (simplified from the usual 7 × 7).
+
+1. The RoI width and height are:
+
+$
+w = 47.8 - 15.2 = 32.6, \quad h = 68.3 - 23.7 = 44.6
+$
+
+Each bin is therefore $w/2 = 16.3$ by $h/2 = 22.3$.
+
+2. In the top-left bin, choose four sampling points at fractional coordinates, for example:
+
+$
+(16.1, 25.9), (24.2, 25.9), (16.1, 36.3), (24.2, 36.3)
+$
+
+3. For each sampling point, compute the feature value with bilinear interpolation.  
+   If a point $(x, y)$ falls between four neighboring pixels with values
+   $v_{11}, v_{12}, v_{21}, v_{22}$, then:
+
+$
+V(x,y) = w_{11}v_{11} + w_{12}v_{12} + w_{21}v_{21} + w_{22}v_{22}
+$
+
+where the weights $w_{ij}$ are proportional to the distance from $(x,y)$ to each pixel center.
+
+4. Average the sampled values to get the bin output. Repeat for all bins.
+
+The result is a 2 × 2 feature map (or 7 × 7 in practice) that is perfectly aligned with the RoI,
+without quantization.
+
+
+
+#### PyTorch-style implementation
+
+PyTorch provides `roi_align` in `torchvision.ops`, which implements exactly this idea.
+
+```python
+from torchvision.ops import roi_align
+
+# feature_map: [B, C, H, W]
+# rois: tensor of shape [num_rois, 5] where each row is [batch_idx, x1, y1, x2, y2]
+pooled = roi_align(
+    feature_map, rois,
+    output_size=(7, 7),   # pooled to 7x7
+    spatial_scale=1/16,   # if backbone stride = 16
+    sampling_ratio=2      # number of samples per bin
+)
+```
+
+#### Why it matters
+
+For bounding box detection, the rounding error of RoI Pooling caused only small accuracy drops.
+But for masks, even a few pixels of misalignment ruin the output. RoI Align solved this issue,
+making instance segmentation practical for the first time.
+
+
+### Step 4: Detection Head
+
+The detection head is very similar to Faster R-CNN. After RoI Align, each proposal is represented
+as a fixed feature map (for example 256 × 7 × 7). These features are flattened and fed into fully
+connected layers, which branch into classification and bounding box regression outputs.
+
+
+
+#### Implementation
+
+```python
+class DetectionHead(nn.Module):
+    def __init__(self, in_channels, num_classes, roi_size=7):
+        super().__init__()
+        # Flattened feature size = in_channels * roi_size * roi_size
+        self.fc1 = nn.Linear(in_channels * roi_size * roi_size, 1024)
+        self.fc2 = nn.Linear(1024, 1024)
+
+        # Classification branch: predicts class scores
+        self.cls_score = nn.Linear(1024, num_classes + 1)  # +1 for background
+
+        # Regression branch: predicts box deltas
+        self.bbox_pred = nn.Linear(1024, num_classes * 4)
+
+    def forward(self, x):
+        x = x.flatten(start_dim=1)
+        x = nn.functional.relu(self.fc1(x))
+        x = nn.functional.relu(self.fc2(x))
+
+        cls_logits = self.cls_score(x)   # [N, num_classes+1]
+        bbox_deltas = self.bbox_pred(x) # [N, num_classes*4]
+        return cls_logits, bbox_deltas
+```
+
+#### Example
+
+If we have 80 object categories (COCO dataset):
+
+- Classification outputs 81 scores per RoI (80 classes + background).
+- Regression outputs 320 values per RoI (80 classes × 4 deltas).
+
+### Step 5: Mask Head
+
+The mask head is the unique addition in Mask R-CNN. Instead of fully connected layers, it uses
+convolutions to preserve spatial structure. It takes higher-resolution RoI features (14 × 14) and
+outputs a binary mask for each class at 28 × 28 resolution.
+
+#### Implementation
+```python
+class MaskHead(nn.Module):
+    def __init__(self, in_channels, num_classes, roi_size=14):
+        super().__init__()
+        # Four 3x3 convolutional layers
+        layers = []
+        for _ in range(4):
+            layers.append(nn.Conv2d(in_channels, 256, kernel_size=3, padding=1))
+            layers.append(nn.ReLU(inplace=True))
+        self.convs = nn.Sequential(*layers)
+
+        # Upsample with a transpose convolution
+        self.deconv = nn.ConvTranspose2d(256, 256, kernel_size=2, stride=2)
+
+        # Final 1x1 conv to output K masks of size 28x28
+        self.mask_pred = nn.Conv2d(256, num_classes, kernel_size=1)
+
+    def forward(self, x):
+        # Input: [N, C, 14, 14] after RoI Align
+        x = self.convs(x)
+        x = nn.functional.relu(self.deconv(x))  # [N, 256, 28, 28]
+        masks = self.mask_pred(x)               # [N, num_classes, 28, 28]
+        return masks
+```
+
+#### Training
+
+- For each positive RoI, only the mask corresponding to its ground truth class is used in the loss.
+- The loss is a pixel-wise binary cross entropy across the 28 × 28 mask.
+- This avoids competition between classes and makes training more stable.
+
+Example
+
+If we detect a “person” in an RoI:
+
+- The detection head predicts class = “person”.
+- The mask head outputs 80 masks (one for each class in COCO).
+- We select only the “person” mask (28 × 28).
+- The mask is resized to the RoI’s bounding box and placed back into the image.
+
+## Limitations
+
+Mask R-CNN was a huge leap forward, but it was not without trade-offs. The first limitation was
+**speed**. Even with the RPN and shared backbone, it remained a two-stage detector. Running RoI
+Align, a detection head, and a mask head for thousands of proposals made it too slow for real-time
+applications like robotics or live video.
+
+The second limitation was **computational cost**. The mask branch, with its extra convolutions,
+added significant memory and compute requirements. On large datasets like COCO, training Mask R-CNN
+required multiple GPUs and long training schedules. Deploying it on edge devices was not practical.
+
+The third limitation was **small object segmentation**. While the FPN improved small object
+detection, segmenting tiny objects remained a challenge. A 28 × 28 mask is already coarse, and when
+upsampled back to the original resolution, the fine details can get lost. Thin structures such as
+bicycle spokes or tree branches often came out blurry.
+
+Finally, like Faster R-CNN, it was still somewhat complex to train. The multi-task loss, balancing
+between RPN, classification, bounding box regression, and masks, required careful tuning.
+
+
+
+## Reflections
+
+When I first studied Mask R-CNN, what impressed me was how *natural* the extension felt. The
+authors did not try to reinvent object detection. They simply took the successful Faster R-CNN
+framework and asked, “what if we add one more branch for masks.” This simplicity is what made it so
+powerful. By keeping the detection head unchanged and only adding the mask head, the model became
+modular, easy to extend, and still very accurate.
+
+The introduction of RoI Align was also an important lesson. Sometimes small design decisions, like
+whether to round coordinates or interpolate them, can make a massive difference. Bounding boxes
+were tolerant to the quantization error of RoI Pooling, but masks were not. RoI Align fixed this
+and made the whole model practical.
+
+For me, Mask R-CNN represents the point where deep learning in computer vision stopped being just
+about “detecting things” and started being about *understanding them in detail*. The ability to
+say not only “there is a person” but also “these are the exact pixels of the person” opened up
+fields like panoptic segmentation, DensePose, and keypoint detection. It showed how modular design
+lets us build more and more complex vision systems on top of the same foundations.
+
+My main takeaway is that progress in computer vision often comes from asking simple questions. Faster
+R-CNN solved region proposals, and Mask R-CNN asked: what if we also predict masks. That single step
+created one of the most widely used baselines in research and industry.
